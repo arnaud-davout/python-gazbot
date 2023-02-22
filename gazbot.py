@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
 import imaplib
 import email
 from email.message import EmailMessage
 from email.header import decode_header
 import os
 import argparse
+from datetime import date
 
 
 class GazBot:
@@ -13,9 +15,6 @@ class GazBot:
         self._workspace = 'data'
         if not os.path.exists(self._workspace):
             os.mkdir(self._workspace)
-
-    def clean(self, text):
-        return "".join(c if c.isalnum() else "_" for c in text)
 
     def get_part_filename(self, msg: EmailMessage):
         filename = msg.get_filename()
@@ -28,6 +27,8 @@ class GazBot:
         status, messages = self.imap.select("INBOX")
         message_count = int(messages[0])
         message_count_limit = 30
+        today = date.today()
+        gazette_title = '<font size="+3"><label style="color:firebrick;"><b>Gazette du '+today.strftime("%d/%m/%Y")+'</b></label> </font><br><br><br>';
         gazette_body = ""
 
         for _idx in range(message_count, max(0,message_count-message_count_limit), -1):
@@ -58,25 +59,10 @@ class GazBot:
                         content_disposition = part.get_content_disposition()
 
                         if content_type == "text/html":
-                            filename = self.clean(subject)+'.html'
-                            filepath = os.path.join(self._workspace, filename)
-                            body = part.get_payload(decode=True).decode()
+                            body = part.get_payload(decode=True).decode(part.get_content_charset())
                             print('text/html body:')
                             print(body)
-                            with open(filepath, "w") as f:
-                                f.write(body)
-                            
-
-                        # elif content_type == "text/plain" and content_disposition != 'attachment':
-                        #     if part.get_payload(decode=True) is not None:
-                        #         filename = self.clean(subject)+'.txt'
-                        #         filepath = os.path.join(self._workspace, filename)
-                        #         body = part.get_payload(decode=True).decode()
-                        #         print('text/plain body:')
-                        #         print(body)
-                        #         with open(filepath, "w") as f:
-                        #             f.write(body)
-
+                            gazette_body += '<b><label style="color:steelblue;">'+subject+'</label> </b><br>'+body+'<br><br>'
                         elif content_disposition == 'attachment':
                             filename = self.get_part_filename(part)
                             if filename:
@@ -87,6 +73,10 @@ class GazBot:
                                     f.write(part.get_payload(decode=True))
 
                     print("="*100)
+            
+            gazette_filepath = os.path.join(self._workspace, today.strftime("Gazette_%d_%m_%Y"))+'.html'     
+            with open(gazette_filepath, "w") as f:
+                f.write(gazette_title+gazette_body)
 
         self.imap.close()
         self.imap.logout()
