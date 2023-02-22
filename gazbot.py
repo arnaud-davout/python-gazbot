@@ -6,6 +6,7 @@ from email.header import decode_header
 import os
 import argparse
 from datetime import date
+import pdfkit
 
 
 class GazBot:
@@ -23,7 +24,7 @@ class GazBot:
         return filename
 
     
-    def get_messages(self):
+    def save_gazette(self):
         status, messages = self.imap.select("INBOX")
         message_count = int(messages[0])
         message_count_limit = 30
@@ -74,9 +75,10 @@ class GazBot:
 
                     print("="*100)
             
-            gazette_filepath = os.path.join(self._workspace, today.strftime("Gazette_%d_%m_%Y"))+'.html'     
-            with open(gazette_filepath, "w") as f:
+            gazette_filepath = os.path.join(self._workspace, today.strftime("Gazette_%d_%m_%Y"))    
+            with open(gazette_filepath+'.html' , "w") as f:
                 f.write(gazette_title+gazette_body)
+            pdfkit.from_file(gazette_filepath+'.html', gazette_filepath+'.pdf')
 
         self.imap.close()
         self.imap.logout()
@@ -94,4 +96,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     gazbot=GazBot(server=args.server, username=args.username, password=args.password)
-    gazbot.get_messages()
+    gazbot.save_gazette()
