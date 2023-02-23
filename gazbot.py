@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import imaplib, smtplib
+import imaplib
 import email
 from email.message import EmailMessage
 from email.header import decode_header
@@ -7,6 +7,16 @@ import os
 import argparse
 from datetime import date
 import pdfkit
+from send_email import send_mail
+
+MAIL_MESSAGE = """From: {}
+To: {}
+MIME-Version: 1.0
+Content-type: text/html
+Subject: SMTP HTML e-mail test
+
+{}
+"""
 
 def replace_in_file(filepath, to_replace, replacement):
     with open(filepath, 'r') as file :
@@ -19,10 +29,13 @@ def replace_in_file(filepath, to_replace, replacement):
 class GazBot:
     def __init__(self, server, username, password):
         self.imap = imaplib.IMAP4_SSL(server)
-        self.smtp = smtplib.SMTP(server)
+        self.server = server
+        self.username = username
+        self.password = password
         self.imap.login(username, password)
         self._workspace = 'data'
         self.gazette_path = ''
+        self.today = date.today()
         if not os.path.exists(self._workspace):
             os.mkdir(self._workspace)
 
@@ -36,8 +49,7 @@ class GazBot:
         status, messages = self.imap.select("INBOX")
         message_count = int(messages[0])
         message_count_limit = 30
-        today = date.today()
-        gazette_title = '<font size="+3"><label style="color:firebrick;"><b>Gazette du '+today.strftime("%d/%m/%Y")+'</b></label> </font><br><br><br>';
+        gazette_title = '<font size="+3"><label style="color:firebrick;"><b>Gazette du '+self.today.strftime("%d/%m/%Y")+'</b></label> </font><br><br><br>';
         gazette_body = ""
 
         for _idx in range(message_count, max(0,message_count-message_count_limit), -1):
@@ -83,7 +95,7 @@ class GazBot:
 
                     print("="*100)
             
-            gazette_filepath = os.path.join(self._workspace, today.strftime("Gazette_%d_%m_%Y"))    
+            gazette_filepath = os.path.join(self._workspace, self.today.strftime("Gazette_%d_%m_%Y"))    
             with open(gazette_filepath+'.html' , "w") as f:
                 f.write(gazette_title+gazette_body)
             replace_in_file(gazette_filepath+'.html', 'iso-8859-1', 'utf-8')
@@ -93,11 +105,15 @@ class GazBot:
         self.imap.close()
         self.imap.logout()
 
-    def send_gazette():
-        sender = 'from@fromdomain.com'
-        receivers = ['to@todomain.com']
-        self.smtp.sendmail(sender, receivers, msg)
-        self.smtp.quit()
+    def send_gazette(self):
+        sender = 'gazette@famille.davout.net'
+        receivers = ['arnaud.davout@gmail.com', 'arnaud@davout.net']
+        subject = 'Gazette du '+self.today.strftime("%d/%m/%Y")
+        body = 'Voici la gazette du '+self.today.strftime("%d/%m/%Y")
+        for receiver in receivers:
+            print('Sending gazette to '+receiver)
+            send_mail(send_from=sender, send_to=receiver, subject=subject, message=body, files=[self.gazette_path],
+            server=self.server, username=self.username, password=self.password)
 
 
 def get_parser():
@@ -114,3 +130,4 @@ if __name__ == "__main__":
 
     gazbot=GazBot(server=args.server, username=args.username, password=args.password)
     gazbot.save_gazette()
+    gazbot.send_gazette()
