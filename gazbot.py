@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import imaplib
+import imaplib, smtplib
 import email
 from email.message import EmailMessage
 from email.header import decode_header
@@ -8,12 +8,21 @@ import argparse
 from datetime import date
 import pdfkit
 
+def replace_in_file(filepath, to_replace, replacement):
+    with open(filepath, 'r') as file :
+        filedata = file.read()
+    filedata = filedata.replace(to_replace, replacement)
+    with open(filepath, 'w') as file:
+        file.write(filedata)
+
 
 class GazBot:
     def __init__(self, server, username, password):
         self.imap = imaplib.IMAP4_SSL(server)
+        self.smtp = smtplib.SMTP(server)
         self.imap.login(username, password)
         self._workspace = 'data'
+        self.gazette_path = ''
         if not os.path.exists(self._workspace):
             os.mkdir(self._workspace)
 
@@ -22,7 +31,6 @@ class GazBot:
         if decode_header(filename)[0][1] is not None:
             filename = decode_header(filename)[0][0].decode(decode_header(filename)[0][1])
         return filename
-
     
     def save_gazette(self):
         status, messages = self.imap.select("INBOX")
@@ -78,10 +86,19 @@ class GazBot:
             gazette_filepath = os.path.join(self._workspace, today.strftime("Gazette_%d_%m_%Y"))    
             with open(gazette_filepath+'.html' , "w") as f:
                 f.write(gazette_title+gazette_body)
+            replace_in_file(gazette_filepath+'.html', 'iso-8859-1', 'utf-8')
             pdfkit.from_file(gazette_filepath+'.html', gazette_filepath+'.pdf')
+            self.gazette_path = gazette_filepath+'.pdf'
 
         self.imap.close()
         self.imap.logout()
+
+    def send_gazette():
+        sender = 'from@fromdomain.com'
+        receivers = ['to@todomain.com']
+        self.smtp.sendmail(sender, receivers, msg)
+        self.smtp.quit()
+
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Gazbot")
