@@ -3,7 +3,7 @@ import imaplib
 import email
 from email.message import EmailMessage
 from email.header import decode_header
-import os
+import os, shutil
 import argparse
 from datetime import date
 import pdfkit
@@ -34,10 +34,17 @@ class GazBot:
         self.password = password
         self.imap.login(username, password)
         self._workspace = 'data'
-        self.gazette_path = ''
+        self._publish_dir = 'publish'
+        self._attachments_dir = os.path.join(self._workspace, 'attachments')
+        self.gazette_pdf = ''
+        self.gazette_html = ''
         self.today = date.today()
         if not os.path.exists(self._workspace):
             os.mkdir(self._workspace)
+        if not os.path.exists(self._publish_dir):
+            os.mkdir(self._publish_dir)
+        if not os.path.exists(self._attachments_dir):
+            os.mkdir(self._attachments_dir)
 
     def get_part_filename(self, msg: EmailMessage):
         filename = msg.get_filename()
@@ -87,7 +94,7 @@ class GazBot:
                         elif content_disposition == 'attachment':
                             filename = self.get_part_filename(part)
                             if filename:
-                                filepath = os.path.join(self._workspace, filename)
+                                filepath = os.path.join(self._attachments_dir, filename)
                                 print('attachment found:')
                                 print(filename)
                                 with open(filepath, "wb") as f:
@@ -95,12 +102,13 @@ class GazBot:
 
                     print("="*100)
             
-            gazette_filepath = os.path.join(self._workspace, self.today.strftime("Gazette_%d_%m_%Y"))    
+            gazette_filepath = os.path.join(self._workspace, self.today.strftime("Gazette_%d_%m_%Y"))  
+            self.gazette_pdf = gazette_filepath+'.pdf'  
+            self.gazette_html = gazette_filepath+'.html'
             with open(gazette_filepath+'.html' , "w") as f:
                 f.write(gazette_title+gazette_body)
-            replace_in_file(gazette_filepath+'.html', 'iso-8859-1', 'utf-8')
-            pdfkit.from_file(gazette_filepath+'.html', gazette_filepath+'.pdf')
-            self.gazette_path = gazette_filepath+'.pdf'
+            replace_in_file(self.gazette_html, 'iso-8859-1', 'utf-8')
+            pdfkit.from_file(self.gazette_html, self.gazette_pdf)
 
         self.imap.close()
         self.imap.logout()
@@ -110,10 +118,20 @@ class GazBot:
         receivers = ['arnaud.davout@gmail.com', 'arnaud@davout.net']
         subject = 'Gazette du '+self.today.strftime("%d/%m/%Y")
         body = 'Voici la gazette du '+self.today.strftime("%d/%m/%Y")
+        attachments = [self.gazette_pdf]
+        for attach in os.listdir(self._attachments_dir):
+            attachments.append(os.path.join(self._attachments_dir, attach))
         for receiver in receivers:
             print('Sending gazette to '+receiver)
-            send_mail(send_from=sender, send_to=receiver, subject=subject, message=body, files=[self.gazette_path],
+            send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, files=attachments,
             server=self.server, username=self.username, password=self.password)
+    
+    def clean_workdir(self):
+        gaz_dir = os.path.join(self._publish_dir,'Gazette_'+self.today.strftime("%Y_%m_%d"))
+        if not os.path.exists(gaz_dir):
+            os.mkdir(gaz_dir)
+        os.rename(self.gazette_html, os.path.join(gaz_dir, os.path.basename(self.gazette_html)))
+        shutil.rmtree(self._workspace)
 
 
 def get_parser():
@@ -131,3 +149,4 @@ if __name__ == "__main__":
     gazbot=GazBot(server=args.server, username=args.username, password=args.password)
     gazbot.save_gazette()
     gazbot.send_gazette()
+    gazbot.clean_workdir()
