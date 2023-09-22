@@ -17,6 +17,7 @@ Subject: SMTP HTML e-mail test
 
 {}
 """
+MAX_DELTA_DAYS = 15
 
 def replace_in_file(filepath, to_replace, replacement):
     with open(filepath, 'r') as file :
@@ -39,6 +40,7 @@ class GazBot:
         self.gazette_pdf = ''
         self.gazette_html = ''
         self.today = date.today()
+        self.adresses = []
         if not os.path.exists(self._workspace):
             os.mkdir(self._workspace)
         if not os.path.exists(self._publish_dir):
@@ -51,6 +53,12 @@ class GazBot:
         if decode_header(filename)[0][1] is not None:
             filename = decode_header(filename)[0][0].decode(decode_header(filename)[0][1])
         return filename
+
+    def get_adresses(self):
+        f=open('address.txt','r')
+        for line in f:
+            self.adresses.append(line.strip('\n'))
+        f.close()
     
     def save_gazette(self):
         status, messages = self.imap.select("INBOX")
@@ -70,37 +78,46 @@ class GazBot:
                     if isinstance(subject, bytes):
                         subject = subject.decode(encoding)
 
-                    From, encoding = decode_header(msg.get("From"))[0]
-                    if isinstance(From, bytes):
-                        From = From.decode(encoding)
+                    received_from, encoding = decode_header(msg.get("From"))[0]
+                    if isinstance(received_from, bytes):
+                        received_from = received_from.decode(encoding)
 
-                    print("Subject:", subject)
-                    print("From:", From)
+                    datestring = decode_header(msg.get("Date"))[0][0]
+                    reveived_date = email.utils.parsedate_to_datetime(datestring).date()
+                    delta_days = self.today-reveived_date
 
-                    if msg.is_multipart():
-                        message_list = msg.walk()
-                    else:
-                        message_list = [msg]
+                    known_sender = False
+                    for address in self.adresses:
+                        if address in received_from:
+                            known_sender=True
 
-                    for part in message_list:
-                        content_type = part.get_content_type()
-                        content_disposition = part.get_content_disposition()
+                    if known_sender and delta_days.days < MAX_DELTA_DAYS:
+                        print("Subject:", subject)
+                        print("From:", received_from)
+                        print("Date:", datestring)
+                        if msg.is_multipart():
+                            message_list = msg.walk()
+                        else:
+                            message_list = [msg]
 
-                        if content_type == "text/html":
-                            body = part.get_payload(decode=True).decode(part.get_content_charset())
-                            print('text/html body:')
-                            print(body)
-                            gazette_body += '<b><label style="color:steelblue;">'+subject+'</label> </b><br>'+body+'<br><br>'
-                        elif content_disposition == 'attachment':
-                            filename = self.get_part_filename(part)
-                            if filename:
-                                filepath = os.path.join(self._attachments_dir, filename)
-                                print('attachment found:')
-                                print(filename)
-                                with open(filepath, "wb") as f:
-                                    f.write(part.get_payload(decode=True))
+                        for part in message_list:
+                            content_type = part.get_content_type()
+                            content_disposition = part.get_content_disposition()
 
-                    print("="*100)
+                            if content_type == "text/html":
+                                body = part.get_payload(decode=True).decode(part.get_content_charset())
+                                print('text/html body:')
+                                print(body)
+                                gazette_body += '<b><label style="color:steelblue;">'+subject+'</label> </b><br>'+body+'<br><br>'
+                            elif content_disposition == 'attachment':
+                                filename = self.get_part_filename(part)
+                                if filename:
+                                    filepath = os.path.join(self._attachments_dir, filename)
+                                    print('attachment found:')
+                                    print(filename)
+                                    with open(filepath, "wb") as f:
+                                        f.write(part.get_payload(decode=True))
+                            print("="*100)
             
             gazette_filepath = os.path.join(self._workspace, self.today.strftime("Gazette_%d_%m_%Y"))  
             self.gazette_pdf = gazette_filepath+'.pdf'  
@@ -115,7 +132,7 @@ class GazBot:
 
     def send_gazette(self):
         sender = 'gazette@famille.davout.net'
-        receivers = ['arnaud.davout@gmail.com', 'arnaud@davout.net']
+        receivers = self.adresses
         subject = 'Gazette du '+self.today.strftime("%d/%m/%Y")
         body = 'Voici la gazette du '+self.today.strftime("%d/%m/%Y")
         attachments = [self.gazette_pdf]
@@ -147,6 +164,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     gazbot=GazBot(server=args.server, username=args.username, password=args.password)
+    gazbot.get_adresses()
     gazbot.save_gazette()
     gazbot.send_gazette()
     gazbot.clean_workdir()
