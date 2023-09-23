@@ -131,10 +131,9 @@ class GazBot:
         attachments = [self.gazette_pdf]
         for attach in os.listdir(self._attachments_dir):
             attachments.append(os.path.join(self._attachments_dir, attach))
-        for receiver in receivers:
-            print('Sending gazette to '+receiver)
-            send_mail(send_from=sender, send_to=receiver, subject=subject, message=body, files=attachments,
-            server=self.server, username=self.username, password=self.password)
+        print('Sending gazette to {}'.format(receivers))
+        send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, files=attachments,
+        server=self.server, username=self.username, password=self.password)
     
     def clean_workdir(self):
         gaz_dir = os.path.join(self._publish_dir,'Gazette_'+self.today.strftime("%Y_%m_%d"))
