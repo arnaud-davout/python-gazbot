@@ -1,4 +1,4 @@
-name: run gazbot
+name: send gazette
 
 on:
   #schedule:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  send_gazette:
     runs-on: self-hosted
     steps:
       - name: checkout repo content
@@ -18,4 +18,4 @@ jobs:
       - name: run gazbot
         run: |
           source .venv/bin/activate
-          python gazbot.py
+          python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD

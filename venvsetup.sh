@@ -17,7 +17,7 @@ install_python() {
     echo "Installing Python virtual environment to ./$VENV_LOCATION"
     [ -d "$VENV_LOCATION" ] && echo "Remove previous Python's env: $VENV_LOCATION" && rm -rf $VENV_LOCATION
     PYTHON_LOCATION=$(which python3)
-    virtualenv -p $PYTHON_LOCATION $VENV_LOCATION
+    $PYTHON_LOCATION -m venv $VENV_LOCATION
 }
 
 install_packages() {

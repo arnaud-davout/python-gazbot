@@ -18,6 +18,7 @@ Subject: SMTP HTML e-mail test
 {}
 """
 MAX_DELTA_DAYS = 15
+HOST_ADDRESS = 'gazette@famille.davout.net'
 
 def replace_in_file(filepath, to_replace, replacement):
     with open(filepath, 'r') as file :
@@ -131,7 +132,7 @@ class GazBot:
         self.imap.logout()
 
     def send_gazette(self):
-        sender = 'gazette@famille.davout.net'
+        sender = HOST_ADDRESS
         receivers = self.adresses
         subject = 'Gazette du '+self.today.strftime("%d/%m/%Y")
         body = 'Voici la gazette du '+self.today.strftime("%d/%m/%Y")
@@ -140,7 +141,7 @@ class GazBot:
             attachments.append(os.path.join(self._attachments_dir, attach))
         for receiver in receivers:
             print('Sending gazette to '+receiver)
-            send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, files=attachments,
+            send_mail(send_from=sender, send_to=receiver, subject=subject, message=body, files=attachments,
             server=self.server, username=self.username, password=self.password)
     
     def clean_workdir(self):
