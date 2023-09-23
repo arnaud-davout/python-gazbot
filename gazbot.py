@@ -9,14 +9,6 @@ from datetime import date
 import pdfkit
 from send_email import send_mail
 
-MAIL_MESSAGE = """From: {}
-To: {}
-MIME-Version: 1.0
-Content-type: text/html
-Subject: SMTP HTML e-mail test
-
-{}
-"""
 MAX_DELTA_DAYS = 15
 HOST_ADDRESS = 'gazette@famille.davout.net'
 
@@ -65,7 +57,7 @@ class GazBot:
         status, messages = self.imap.select("INBOX")
         message_count = int(messages[0])
         message_count_limit = 30
-        gazette_title = '<font size="+3"><label style="color:firebrick;"><b>Gazette du '+self.today.strftime("%d/%m/%Y")+'</b></label> </font><br><br><br>';
+        gazette_title = '<head><meta charset="utf-8"></head><font size="+3"><label style="color:firebrick;"><b>Gazette du '+self.today.strftime("%d/%m/%Y")+'</b></label> </font><br><br><br>';
         gazette_body = ""
 
         for _idx in range(message_count, max(0,message_count-message_count_limit), -1):
