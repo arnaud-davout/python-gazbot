@@ -17,5 +17,6 @@ jobs:
 
       - name: run gazbot
         run: |
+          source ~/gaz_env.sh
           source .venv/bin/activate
           python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --gazette 0

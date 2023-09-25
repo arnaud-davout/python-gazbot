@@ -1,4 +1,4 @@
-name: send gazette
+name: send reminder
 
 on:
   #schedule:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  send_gazette:
+  send_reminder:
     runs-on: self-hosted
     steps:
       - name: checkout repo content
@@ -17,5 +17,6 @@ jobs:
 
       - name: run gazbot
         run: |
+          source ~/gaz_env.sh
           source .venv/bin/activate
           python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --reminder 1

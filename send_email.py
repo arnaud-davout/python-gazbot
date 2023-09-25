@@ -2,10 +2,10 @@
 import smtplib
 from pathlib import Path
 from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
+from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
-from email import encoders
+from os.path import basename
 
 
 def send_mail(send_from, send_to, subject, message, files=[],
@@ -34,13 +34,15 @@ def send_mail(send_from, send_to, subject, message, files=[],
     msg.attach(MIMEText(message, 'html'))
 
     for path in files:
-        part = MIMEBase('application', "octet-stream")
-        with open(path, 'rb') as file:
-            part.set_payload(file.read())
-        encoders.encode_base64(part)
-        part.add_header('Content-Disposition',
-                        'attachment; filename={}'.format(Path(path).name))
+
+        with open(path, "rb") as _file:
+            part = MIMEApplication(
+                _file.read(),
+                Name=basename(path)
+            )
+        part['Content-Disposition'] = 'attachment; filename="%s"' % basename(path)
         msg.attach(part)
+        print("Sending file {}".format(Path(path).name))
 
     smtp = smtplib.SMTP(server, port)
     if use_tls:

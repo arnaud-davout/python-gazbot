@@ -177,6 +177,6 @@ if __name__ == "__main__":
     if args.gazette:
         gazbot.save_gazette()
         gazbot.send_gazette()
-        # gazbot.clean_workdir()
+        gazbot.clean_workdir()
     elif args.reminder:
         gazbot.send_reminder(remaining_days=args.reminder)
