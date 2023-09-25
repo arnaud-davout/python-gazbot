@@ -1,0 +1,21 @@
+name: send gazette
+
+on:
+  #schedule:
+  #  - cron: '0 0 * * 1' # At 00:00 on Monday
+  workflow_dispatch:
+
+jobs:
+  send_gazette:
+    runs-on: self-hosted
+    steps:
+      - name: checkout repo content
+        uses: actions/checkout@v2 # checkout the repository content
+
+      - name: setup venv
+        run: ./venvsetup.sh
+
+      - name: run gazbot
+        run: |
+          source .venv/bin/activate
+          python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --gazette 0

@@ -18,4 +18,4 @@ jobs:
       - name: run gazbot
         run: |
           source .venv/bin/activate
-          python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD
+          python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --reminder 1

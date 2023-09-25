@@ -10,7 +10,12 @@ import pdfkit
 from send_email import send_mail
 
 MAX_DELTA_DAYS = 15
-HOST_ADDRESS = 'gazette@famille.davout.net'
+HOST_ADDRESS = '"GazBot" <gazette@famille.davout.net>'
+
+__VERSION__ = "1.0"
+GITHUB = "https://github.com/arnaud-davout/python-gazbot"
+HOWTO = "https://github.com/arnaud-davout/python-gazbot/blob/main/HOWTO.md"
+SIGNATURE = '<br><br><br>---<br>PyGazetteBot v' + __VERSION__ + ' | <a href=' + HOWTO + '>Gazette HOW-TO</a> | <a href=' + GITHUB + '>GitHub</a>'
 
 def replace_in_file(filepath, to_replace, replacement):
     with open(filepath, 'r') as file :
@@ -57,7 +62,7 @@ class GazBot:
         status, messages = self.imap.select("INBOX")
         message_count = int(messages[0])
         message_count_limit = 30
-        gazette_title = '<head><meta charset="utf-8"></head><font size="+3"><label style="color:firebrick;"><b>Gazette du '+self.today.strftime("%d/%m/%Y")+'</b></label> </font><br><br><br>';
+        gazette_title = '<head><meta charset="utf-8"></head><font size="+3"><label style="color:firebrick;"><b>Gazette du '+self.today.strftime("%d/%m/%Y")+'</b></label> </font><br><br><br>'
         gazette_body = ""
 
         for _idx in range(message_count, max(0,message_count-message_count_limit), -1):
@@ -127,13 +132,13 @@ class GazBot:
         sender = HOST_ADDRESS
         receivers = self.adresses
         subject = 'Gazette du '+self.today.strftime("%d/%m/%Y")
-        body = 'Voici la gazette du '+self.today.strftime("%d/%m/%Y")
+        body = 'Voici la gazette du '+self.today.strftime("%d/%m/%Y") + SIGNATURE
         attachments = [self.gazette_pdf]
         for attach in os.listdir(self._attachments_dir):
             attachments.append(os.path.join(self._attachments_dir, attach))
         print('Sending gazette to {}'.format(receivers))
         send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, files=attachments,
-        server=self.server, username=self.username, password=self.password)
+                  server=self.server, username=self.username, password=self.password)
     
     def clean_workdir(self):
         gaz_dir = os.path.join(self._publish_dir,'Gazette_'+self.today.strftime("%Y_%m_%d"))
@@ -142,12 +147,24 @@ class GazBot:
         os.rename(self.gazette_html, os.path.join(gaz_dir, os.path.basename(self.gazette_html)))
         shutil.rmtree(self._workspace)
 
+    def send_reminder(self, remaining_days=0):
+        sender = HOST_ADDRESS
+        receivers = self.adresses
+        subject = 'Rappel Gazette : J-{}'.format(remaining_days)
+        body = "Ceci est un mail automatique vous rappelant qu'il vous reste {} jours pour écrire votre gazette !  \
+            <br><br><b>Note:</b> vous n'auriez pas reçu ce mail si vous aviez envoyé votre gazette !".format(remaining_days) + SIGNATURE
+        print('Sending {} day reminder to {}'.format(remaining_days, receivers))
+        send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, server=self.server, 
+                  username=self.username, password=self.password)
+
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Gazbot")
     parser.add_argument('--server', '-s', required=True, help="Adress of the mail server")
     parser.add_argument('--username', '-u', required=True, help="Username of the mail account")
     parser.add_argument('--password', '-p', required=True, help="Password of the mail account")
+    parser.add_argument('--gazette', '-g', required=False, help="Send dazette")
+    parser.add_argument('--reminder', '-r', required=False, help="send reminder")
     return parser
 
 
@@ -157,6 +174,9 @@ if __name__ == "__main__":
 
     gazbot=GazBot(server=args.server, username=args.username, password=args.password)
     gazbot.get_adresses()
-    gazbot.save_gazette()
-    gazbot.send_gazette()
-    gazbot.clean_workdir()
+    if args.gazette:
+        gazbot.save_gazette()
+        gazbot.send_gazette()
+        # gazbot.clean_workdir()
+    elif args.reminder:
+        gazbot.send_reminder(remaining_days=args.reminder)

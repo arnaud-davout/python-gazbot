@@ -31,7 +31,7 @@ def send_mail(send_from, send_to, subject, message, files=[],
     msg['Date'] = formatdate(localtime=True)
     msg['Subject'] = subject
 
-    msg.attach(MIMEText(message))
+    msg.attach(MIMEText(message, 'html'))
 
     for path in files:
         part = MIMEBase('application', "octet-stream")
