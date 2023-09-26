@@ -1,12 +1,14 @@
-name: send reminder
+name: send reminder 3
 
 on:
-  #schedule:
-  #  - cron: '0 0 * * 1' # At 00:00 on Monday
+  schedule:
+   - cron: '0 1 28 1,3,5,7,8,10,12 *' # At 01:00 3 days before end of the month
+   - cron: '0 1 27 4,6,9,11 *'
+   - cron: '0 1 25 2 *'
   workflow_dispatch:
 
 jobs:
-  send_reminder:
+  send_reminder_3:
     runs-on: self-hosted
     steps:
       - name: checkout repo content
@@ -19,4 +21,4 @@ jobs:
         run: |
           source ~/gaz_env.sh
           source .venv/bin/activate
-          python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --reminder 1
+          python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --reminder 3
