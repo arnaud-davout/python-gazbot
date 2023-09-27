@@ -52,8 +52,8 @@ class GazBot:
             filename = decode_header(filename)[0][0].decode(decode_header(filename)[0][1])
         return filename
 
-    def get_adresses(self):
-        f=open('address.txt','r')
+    def get_adresses(self, address_filepath):
+        f=open(address_filepath,'r')
         for line in f:
             self.adresses.append(line.strip('\n'))
         f.close()
@@ -163,6 +163,7 @@ def get_parser():
     parser.add_argument('--server', '-s', required=True, help="Adress of the mail server")
     parser.add_argument('--username', '-u', required=True, help="Username of the mail account")
     parser.add_argument('--password', '-p', required=True, help="Password of the mail account")
+    parser.add_argument('--address', '-a', required=True, help="Address file")
     parser.add_argument('--gazette', '-g', required=False, help="Send dazette")
     parser.add_argument('--reminder', '-r', required=False, help="send reminder")
     return parser
@@ -173,7 +174,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     gazbot=GazBot(server=args.server, username=args.username, password=args.password)
-    gazbot.get_adresses()
+    gazbot.get_adresses(address_filepath=args.address)
     if args.gazette:
         gazbot.save_gazette()
         gazbot.send_gazette()
