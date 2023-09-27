@@ -1,16 +1,22 @@
 # python-gazbot
-Automated gazette bot
-Collects contributors mails, compile them in a pdf file and send it to all contributors 
 
+## Automated gazette bot
 
-## Prerequisites
-Install wkhtmltopdf:
-```bash
-apt-get install wkhtmltopdf
-```
+Requirements :
+- Python >= 3.8
+- wkhtmltopdf - [https://pypi.org/project/html-testRunner/](https://wkhtmltopdf.org/)
+- pdfkit - [https://pypi.org/project/requests/](https://pypi.org/project/pdfkit/)
 
-## Installation
 Install virtual environment:
 ```bash
 ./venvsetup.sh
 ```
+
+Use :
+- Setup an address file
+- Have a mail server up and running
+- Launch gazbot:
+```python
+usage: gazbot.py [-h] --server SERVER --username USERNAME --password PASSWORD --address ADDRESS [--gazette GAZETTE] [--reminder REMINDER]
+```
+
