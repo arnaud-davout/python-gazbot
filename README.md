@@ -4,8 +4,8 @@
 
 Requirements :
 - Python >= 3.8
-- wkhtmltopdf - [https://pypi.org/project/html-testRunner/](https://wkhtmltopdf.org/)
-- pdfkit - [https://pypi.org/project/requests/](https://pypi.org/project/pdfkit/)
+- wkhtmltopdf - https://wkhtmltopdf.org/
+- pdfkit - https://pypi.org/project/pdfkit/
 
 Install virtual environment:
 ```bash
