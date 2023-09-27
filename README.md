@@ -1,6 +1,6 @@
 # python-gazbot
 Automated gazette bot
-Collects contributors mails and compile them in a pdf file and send it to all contributors 
+Collects contributors mails, compile them in a pdf file and send it to all contributors 
 
 
 ## Prerequisites
