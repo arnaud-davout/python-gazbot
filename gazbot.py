@@ -151,8 +151,7 @@ class GazBot:
         sender = HOST_ADDRESS
         receivers = self.adresses
         subject = 'Rappel Gazette : J-{}'.format(remaining_days)
-        body = "Ceci est un mail automatique vous rappelant qu'il vous reste {} jours pour écrire votre gazette !  \
-            <br><br><b>Note:</b> vous n'auriez pas reçu ce mail si vous aviez envoyé votre gazette !".format(remaining_days) + SIGNATURE
+        body = "Ceci est un mail automatique vous rappelant qu'il vous reste {} jours pour écrire votre gazette !".format(remaining_days) + SIGNATURE
         print('Sending {} day reminder to {}'.format(remaining_days, receivers))
         send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, server=self.server, 
                   username=self.username, password=self.password)
