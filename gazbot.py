@@ -63,7 +63,7 @@ class GazBot:
         message_count = int(messages[0])
         message_count_limit = 30
         gazette_title = '<head><meta charset="utf-8"></head><font size="+3"><label style="color:firebrick;"><b>Gazette du '+self.today.strftime("%d/%m/%Y")+'</b></label> </font><br><br><br>'
-        gazette_body = ""
+        gazette_body = "<body  style='width:600px;'>"
 
         for _idx in range(message_count, max(0,message_count-message_count_limit), -1):
             res, msg = self.imap.fetch(str(_idx), "(RFC822)")
@@ -114,13 +114,11 @@ class GazBot:
                                 print('text/html body:')
                                 print(body)
                                 html_body = True
-                                # gazette_body += '<b><label style="color:steelblue;">'+subject+'</label> </b><br>'+body+'<br><br>'
                             elif content_type == "text/plain" and not html_body:
                                 body = part.get_payload(decode=True).decode(part.get_content_charset())
                                 print('text/plain body:')
                                 print(body)
-                                body = '<pre>'+body+'</pre>'
-                                # gazette_body += '<b><label style="color:steelblue;">'+subject+'</label> </b><br><pre>'+body+'</pre><br><br>'
+                                body = body.replace('\n', '<br>')
                             elif content_disposition == 'attachment':
                                 filename = self.get_part_filename(part)
                                 if filename:
@@ -132,15 +130,21 @@ class GazBot:
             if body != None:
                 gazette_body += '<b><label style="color:steelblue;">'+subject+'</label> </b><br>'+body+'<br><br>'
             print("="*100)
+        
+        gazette_body += '</body>'
             
-            gazette_filepath = os.path.join(self._workspace, self.today.strftime("Gazette_%d_%m_%Y"))  
-            self.gazette_pdf = gazette_filepath+'.pdf'  
-            self.gazette_html = gazette_filepath+'.html'
-            with open(gazette_filepath+'.html' , "w") as f:
-                f.write(gazette_title+gazette_body)
-            replace_in_file(self.gazette_html, 'iso-8859-1', 'utf-8')
-            pdfkit.from_file(self.gazette_html, self.gazette_pdf)
-
+        gazette_filepath = os.path.join(self._workspace, self.today.strftime("Gazette_%d_%m_%Y"))  
+        self.gazette_pdf = gazette_filepath+'.pdf'  
+        self.gazette_html = gazette_filepath+'.html'
+        with open(gazette_filepath+'.html' , "w") as f:
+            f.write(gazette_title+gazette_body)
+        replace_in_file(self.gazette_html, 'iso-8859-1', 'utf-8')
+        pdfkit.from_file(self.gazette_html, self.gazette_pdf, options={
+                                                                'page-size': 'Letter',
+                                                                'margin-top': '0.75in',
+                                                                'margin-right': '0.75in',
+                                                                'margin-bottom': '0.75in',
+                                                                'margin-left': '0.75in',})
         self.imap.close()
         self.imap.logout()
 
