@@ -67,6 +67,8 @@ class GazBot:
 
         for _idx in range(message_count, max(0,message_count-message_count_limit), -1):
             res, msg = self.imap.fetch(str(_idx), "(RFC822)")
+            body = None
+            html_body = False
 
             for response in msg:
                 if isinstance(response, tuple):
@@ -76,9 +78,14 @@ class GazBot:
                     if isinstance(subject, bytes):
                         subject = subject.decode(encoding)
 
-                    received_from, encoding = decode_header(msg.get("From"))[0]
-                    if isinstance(received_from, bytes):
-                        received_from = received_from.decode(encoding)
+                    _, encoding = decode_header(msg.get("From"))[0]
+                    for _idx in decode_header(msg.get("From")):
+                        _from, _ = _idx
+                        if isinstance(_from, bytes):
+                            if encoding:
+                                _from = _from.decode(encoding)
+                        if '@' in _from:
+                            received_from = _from
 
                     datestring = decode_header(msg.get("Date"))[0][0]
                     reveived_date = email.utils.parsedate_to_datetime(datestring).date()
@@ -106,7 +113,14 @@ class GazBot:
                                 body = part.get_payload(decode=True).decode(part.get_content_charset())
                                 print('text/html body:')
                                 print(body)
-                                gazette_body += '<b><label style="color:steelblue;">'+subject+'</label> </b><br>'+body+'<br><br>'
+                                html_body = True
+                                # gazette_body += '<b><label style="color:steelblue;">'+subject+'</label> </b><br>'+body+'<br><br>'
+                            elif content_type == "text/plain" and not html_body:
+                                body = part.get_payload(decode=True).decode(part.get_content_charset())
+                                print('text/plain body:')
+                                print(body)
+                                body = '<pre>'+body+'</pre>'
+                                # gazette_body += '<b><label style="color:steelblue;">'+subject+'</label> </b><br><pre>'+body+'</pre><br><br>'
                             elif content_disposition == 'attachment':
                                 filename = self.get_part_filename(part)
                                 if filename:
@@ -115,7 +129,9 @@ class GazBot:
                                     print(filename)
                                     with open(filepath, "wb") as f:
                                         f.write(part.get_payload(decode=True))
-                            print("="*100)
+            if body != None:
+                gazette_body += '<b><label style="color:steelblue;">'+subject+'</label> </b><br>'+body+'<br><br>'
+            print("="*100)
             
             gazette_filepath = os.path.join(self._workspace, self.today.strftime("Gazette_%d_%m_%Y"))  
             self.gazette_pdf = gazette_filepath+'.pdf'  
