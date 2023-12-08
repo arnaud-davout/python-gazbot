@@ -39,6 +39,7 @@ class GazBot:
         self.gazette_html = ''
         self.today = date.today()
         self.adresses = []
+        self.adresses_ok = []
         if not os.path.exists(self._workspace):
             os.mkdir(self._workspace)
         if not os.path.exists(self._publish_dir):
@@ -57,6 +58,46 @@ class GazBot:
         for line in f:
             self.adresses.append(line.strip('\n'))
         f.close()
+
+    def get_addresses_ok(self):
+        self.adresses_ok = self.adresses
+        status, messages = self.imap.select("INBOX")
+        message_count = int(messages[0])
+        message_count_limit = 30
+
+        for _idx in range(message_count, max(0,message_count-message_count_limit), -1):
+            res, msg = self.imap.fetch(str(_idx), "(RFC822)")
+
+            for response in msg:
+                if isinstance(response, tuple):
+                    msg = email.message_from_bytes(response[1])
+                    subject, encoding = decode_header(msg["Subject"])[0]
+
+                    _, encoding = decode_header(msg.get("From"))[0]
+                    for _idx in decode_header(msg.get("From")):
+                        _from, _ = _idx
+                        if isinstance(_from, bytes):
+                            if encoding:
+                                _from = _from.decode(encoding)
+                        if '@' in _from:
+                            received_from = _from
+
+                    datestring = decode_header(msg.get("Date"))[0][0]
+                    received_date = email.utils.parsedate_to_datetime(datestring).date()
+                    delta_days = self.today-received_date
+                    
+                    known_sender = False
+                    for address in self.adresses:
+                        if address in received_from:
+                            known_sender=True
+                            print(received_from, " wrote his gaz")
+
+
+                    if known_sender and delta_days.days < MAX_DELTA_DAYS:
+                        for adress in self.adresses:
+                            if adress in received_from:
+                                self.adresses_ok.remove(adress)
+
     
     def save_gazette(self):
         status, messages = self.imap.select("INBOX")
@@ -88,8 +129,8 @@ class GazBot:
                             received_from = _from
 
                     datestring = decode_header(msg.get("Date"))[0][0]
-                    reveived_date = email.utils.parsedate_to_datetime(datestring).date()
-                    delta_days = self.today-reveived_date
+                    received_date = email.utils.parsedate_to_datetime(datestring).date()
+                    delta_days = self.today-received_date
 
                     known_sender = False
                     for address in self.adresses:
@@ -169,7 +210,7 @@ class GazBot:
 
     def send_reminder(self, remaining_days=0):
         sender = HOST_ADDRESS
-        receivers = self.adresses
+        receivers = self.adresses_ok
         subject = 'Rappel Gazette : J-{}'.format(remaining_days)
         body = "Ceci est un mail automatique vous rappelant qu'il vous reste {} jours pour écrire votre gazette !".format(remaining_days) + SIGNATURE
         print('Sending {} day reminder to {}'.format(remaining_days, receivers))
@@ -199,4 +240,5 @@ if __name__ == "__main__":
         gazbot.send_gazette()
         gazbot.clean_workdir()
     elif args.reminder:
+        gazbot.get_addresses_ok()
         gazbot.send_reminder(remaining_days=args.reminder)
