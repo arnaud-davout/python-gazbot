@@ -1,0 +1,38 @@
+body {
+    font-family: 'Verdana', sans-serif;
+    font-size: 20px;
+    color: #333; /* Couleur du texte principale */
+    line-height: 1.6;
+    width:800px;
+    background-color: white; /* Couleur d'arrière-plan */
+}
+
+h1 {
+    font-size: 1.5em;
+    color: firebrick;
+}
+
+h2 {
+    font-size: 1em;
+    color: steelblue;
+}
+
+p {
+    margin-bottom: 1.5em;
+}
+
+b {
+    font-weight: bold;
+}
+
+i {
+    font-style: italic;
+}
+
+a {
+    color: #007BFF; /* Couleur des liens */
+}
+
+label {
+    color: steelblue;
+}

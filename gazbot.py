@@ -60,7 +60,7 @@ class GazBot:
         f.close()
 
     def get_addresses_ok(self):
-        self.adresses_ok = self.adresses
+        self.adresses_ok = self.adresses.copy()
         status, messages = self.imap.select("INBOX")
         message_count = int(messages[0])
         message_count_limit = 30
@@ -86,26 +86,36 @@ class GazBot:
                     received_date = email.utils.parsedate_to_datetime(datestring).date()
                     delta_days = self.today-received_date
                     
-                    known_sender = False
                     for address in self.adresses:
-                        if address in received_from:
-                            known_sender=True
+                        if address in received_from and address in self.adresses_ok and delta_days.days < MAX_DELTA_DAYS:
+                            self.adresses_ok.remove(address)
                             print(received_from, " wrote his gaz")
-
-
-                    if known_sender and delta_days.days < MAX_DELTA_DAYS:
-                        for adress in self.adresses:
-                            if adress in received_from:
-                                self.adresses_ok.remove(adress)
 
     
     def save_gazette(self):
         status, messages = self.imap.select("INBOX")
         message_count = int(messages[0])
         message_count_limit = 30
-        gazette_title = '<head><meta charset="utf-8"></head><font size="+3"><label style="color:firebrick;"><b>Gazette du '+self.today.strftime("%d/%m/%Y")+'</b></label> </font><br><br><br>'
-        gazette_body = "<body  style='width:600px;'>"
+        gazette_title = '<h1><b>Gazette du '+self.today.strftime("%d/%m/%Y")+'</b></h1>'
+        gazette_head = '<head><meta charset="utf-8">'+gazette_title+'</head><br>'
+        gazette_body = "<body>"
 
+        # stats
+        gaz_month_stat = ((len(self.adresses)-len(self.adresses_ok))/len(self.adresses))*100
+        if (gaz_month_stat< 34):
+            gaz_stats = '<h2><b><label>Taux de participation : </b></label><label style="color:#FF0000;">{:.2f}%</h2></label>'.format(gaz_month_stat)
+        elif (gaz_month_stat>34 and gaz_month_stat<67):
+            gaz_stats = '<h2><b><label>Taux de participation : </b></label><label style="color:#FFA500;">{:.2f}%</h2></label>'.format(gaz_month_stat)
+        elif (gaz_month_stat>67 and gaz_month_stat<100):
+            gaz_stats = '<h2><b><label>Taux de participation : </b></label><label style="color:#FFFF00;">{:.2f}%</h2></label>'.format(gaz_month_stat)
+        else:
+            gaz_stats = '<h2><b><label>Taux de participation : </b></label><label style="color:#008000;">{:.2f}%</h2></label>'.format(gaz_month_stat)
+        print("gaz_month_stat : {}/{}".format(len(self.adresses_ok),len(self.adresses)))
+        print("gaz_month_stat (%) : {:.2f}".format(gaz_month_stat))
+
+        list_name_ok = ''
+
+        # body
         for _idx in range(message_count, max(0,message_count-message_count_limit), -1):
             res, msg = self.imap.fetch(str(_idx), "(RFC822)")
             body = None
@@ -169,23 +179,27 @@ class GazBot:
                                     with open(filepath, "wb") as f:
                                         f.write(part.get_payload(decode=True))
             if body != None:
-                gazette_body += '<b><label style="color:steelblue;">'+subject+'</label> </b><br>'+body+'<br><br>'
+                sender_name = received_from.split('<')[0].replace('"','')
+                list_name_ok += sender_name + '<br>'
+                gazette_body += '<b><label>'+subject+'</label> </b><br>'+body+'<br><br>'
             print("="*100)
         
         gazette_body += '</body>'
+        gaz_name_list = '<br><b><label>Contributeurs : <br></b></label><i>'+list_name_ok+'</i><br><br><br>'
             
         gazette_filepath = os.path.join(self._workspace, self.today.strftime("Gazette_%d_%m_%Y"))  
         self.gazette_pdf = gazette_filepath+'.pdf'  
         self.gazette_html = gazette_filepath+'.html'
         with open(gazette_filepath+'.html' , "w") as f:
-            f.write(gazette_title+gazette_body)
+            f.write(gazette_head+gaz_stats+gaz_name_list+gazette_body)
         replace_in_file(self.gazette_html, 'iso-8859-1', 'utf-8')
-        pdfkit.from_file(self.gazette_html, self.gazette_pdf, options={
+        pdfkit.from_file(self.gazette_html, self.gazette_pdf, css='style.css', options={
                                                                 'page-size': 'Letter',
                                                                 'margin-top': '0.75in',
                                                                 'margin-right': '0.75in',
                                                                 'margin-bottom': '0.75in',
-                                                                'margin-left': '0.75in',})
+                                                                'margin-left': '0.75in',
+                                                                })
         self.imap.close()
         self.imap.logout()
 
@@ -212,7 +226,7 @@ class GazBot:
         sender = HOST_ADDRESS
         receivers = self.adresses_ok
         subject = 'Rappel Gazette : J-{}'.format(remaining_days)
-        body = "Ceci est un mail automatique vous rappelant qu'il vous reste {} jours pour écrire votre gazette !".format(remaining_days) + SIGNATURE
+        body = "Ceci est un mail automatique vous rappelant qu'il vous reste {} jours pour écrire votre gazette !<br><br><b>Note:</b> vous n'auriez pas reçu ce mail si vous aviez envoyé votre gazette !".format(remaining_days) + SIGNATURE
         print('Sending {} day reminder to {}'.format(remaining_days, receivers))
         send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, server=self.server, 
                   username=self.username, password=self.password)
@@ -236,6 +250,7 @@ if __name__ == "__main__":
     gazbot=GazBot(server=args.server, username=args.username, password=args.password)
     gazbot.get_adresses(address_filepath=args.address)
     if args.gazette:
+        gazbot.get_addresses_ok()
         gazbot.save_gazette()
         gazbot.send_gazette()
         gazbot.clean_workdir()
