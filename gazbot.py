@@ -39,6 +39,7 @@ class GazBot:
         self.gazette_html = ''
         self.today = date.today()
         self.adresses = []
+        self.names = []
         self.adresses_ok = []
         if not os.path.exists(self._workspace):
             os.mkdir(self._workspace)
@@ -56,7 +57,8 @@ class GazBot:
     def get_adresses(self, address_filepath):
         f=open(address_filepath,'r')
         for line in f:
-            self.adresses.append(line.strip('\n'))
+            self.adresses.append(line.strip('\n').split(',')[0])
+            self.names.append(line.strip('\n').split(',')[1])
         f.close()
 
     def get_addresses_ok(self):
@@ -143,9 +145,12 @@ class GazBot:
                     delta_days = self.today-received_date
 
                     known_sender = False
+                    _idx = 0
                     for address in self.adresses:
                         if address in received_from:
                             known_sender=True
+                            sender_name = self.names[_idx]
+                        _idx += 1
 
                     if known_sender and delta_days.days < MAX_DELTA_DAYS:
                         print("Subject:", subject)
@@ -179,7 +184,7 @@ class GazBot:
                                     with open(filepath, "wb") as f:
                                         f.write(part.get_payload(decode=True))
             if body != None:
-                sender_name = received_from.split('<')[0].replace('"','')
+                # sender_name = received_from.split('<')[0].replace('"','')
                 list_name_ok += sender_name + '<br>'
                 gazette_body += '<b><label>'+subject+'</label> </b><br>'+body+'<br><br>'
             print("="*100)
