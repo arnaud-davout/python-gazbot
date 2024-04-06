@@ -38,9 +38,8 @@ class GazBot:
         self.gazette_pdf = ''
         self.gazette_html = ''
         self.today = date.today()
-        self.adresses = []
-        self.names = []
-        self.adresses_ok = []
+        self.adresses = {}
+        self.adresses_ok = {}
         if not os.path.exists(self._workspace):
             os.mkdir(self._workspace)
         if not os.path.exists(self._publish_dir):
@@ -57,8 +56,7 @@ class GazBot:
     def get_adresses(self, address_filepath):
         f=open(address_filepath,'r')
         for line in f:
-            self.adresses.append(line.strip('\n').split(',')[0])
-            self.names.append(line.strip('\n').split(',')[1])
+            self.adresses[line.strip('\n').split(':')[1]] = line.strip('\n').split(':')[0].split(',')
         f.close()
 
     def get_addresses_ok(self):
@@ -88,10 +86,12 @@ class GazBot:
                     received_date = email.utils.parsedate_to_datetime(datestring).date()
                     delta_days = self.today-received_date
                     
-                    for address in self.adresses:
-                        if address in received_from and address in self.adresses_ok and delta_days.days < MAX_DELTA_DAYS:
-                            self.adresses_ok.remove(address)
-                            print(received_from, " wrote his gaz")
+                    for _contributor in self.adresses:
+                        address = self.adresses[_contributor]
+                        for _addr in address:
+                            if _addr in received_from  and _contributor in self.adresses_ok and delta_days.days < MAX_DELTA_DAYS:
+                                del self.adresses_ok[_contributor]
+                                print(received_from, " wrote his gaz")
 
     
     def save_gazette(self):
@@ -146,11 +146,13 @@ class GazBot:
 
                     known_sender = False
                     _idx = 0
-                    for address in self.adresses:
-                        if address in received_from:
-                            known_sender=True
-                            sender_name = self.names[_idx]
-                        _idx += 1
+                    for _contributor in self.adresses:
+                        address = self.adresses[_contributor]
+                        for _addr in address:
+                            if _addr in received_from:
+                                known_sender=True
+                                sender_name = _contributor
+                            _idx += 1
 
                     if known_sender and delta_days.days < MAX_DELTA_DAYS:
                         print("Subject:", subject)
@@ -184,7 +186,6 @@ class GazBot:
                                     with open(filepath, "wb") as f:
                                         f.write(part.get_payload(decode=True))
             if body != None:
-                # sender_name = received_from.split('<')[0].replace('"','')
                 list_name_ok += sender_name + '<br>'
                 gazette_body += '<b><label>'+subject+'</label> </b><br>'+body+'<br><br>'
             print("="*100)
@@ -229,7 +230,10 @@ class GazBot:
 
     def send_reminder(self, remaining_days=0):
         sender = HOST_ADDRESS
-        receivers = self.adresses_ok
+        receivers = []
+        for _tabs in self.adresses_ok.values():
+            for addr in _tabs:
+                receivers.append(addr)
         subject = 'Rappel Gazette : J-{}'.format(remaining_days)
         body = "Ceci est un mail automatique vous rappelant qu'il vous reste {} jours pour écrire votre gazette !<br><br><b>Note:</b> vous n'auriez pas reçu ce mail si vous aviez envoyé votre gazette !".format(remaining_days) + SIGNATURE
         print('Sending {} day reminder to {}'.format(remaining_days, receivers))
