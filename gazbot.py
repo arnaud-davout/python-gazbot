@@ -211,7 +211,10 @@ class GazBot:
 
     def send_gazette(self):
         sender = HOST_ADDRESS
-        receivers = self.adresses
+        receivers = []
+        for _tabs in self.adresses.values():
+            for addr in _tabs:
+                receivers.append(addr)
         subject = 'Gazette du '+self.today.strftime("%d/%m/%Y")
         body = 'Voici la gazette du '+self.today.strftime("%d/%m/%Y") + SIGNATURE
         attachments = [self.gazette_pdf]
