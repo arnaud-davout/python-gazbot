@@ -19,4 +19,3 @@ Use :
 ```python
 usage: gazbot.py [-h] --server SERVER --username USERNAME --password PASSWORD --address ADDRESS [--gazette GAZETTE] [--reminder REMINDER]
 ```
-
