@@ -6,7 +6,7 @@ on:
    - cron: '0 1 28 4,6,9,11 *'
    - cron: '0 1 26 2 *'
   workflow_dispatch:
-
+ 
 jobs:
   send_reminder_2:
     runs-on: self-hosted
