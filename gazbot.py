@@ -31,9 +31,9 @@ class GazBot:
         self.server = server
         self.username = username
         self.password = password
-        self.password_server = password_server
-        self.password_username = password_username
-        self.password_smtp = smtp_password
+        self.smtp_server = smtp_server
+        self.smtp_username = smtp_username
+        self.smtp_password = smtp_password
         self.imap.login(username, password)
         self._workspace = 'data'
         self._publish_dir = 'publish'
@@ -255,9 +255,9 @@ def get_parser():
     parser.add_argument('--address', '-a', required=True, help="Address file")
     parser.add_argument('--gazette', '-g', required=False, help="Send dazette")
     parser.add_argument('--reminder', '-r', required=False, help="send reminder")
-    parser.add_argument('--server_smtp', required=True, help="Adress of the SMTP mail server")
-    parser.add_argument('--username_smtp', required=True, help="Username of the SMTP mail account")
-    parser.add_argument('--password_smtp', required=True, help="Password of the SMTP mail account")
+    parser.add_argument('--smtp_server', required=True, help="Adress of the SMTP mail server")
+    parser.add_argument('--smtp_username', required=True, help="Username of the SMTP mail account")
+    parser.add_argument('--smtp_password', required=True, help="Password of the SMTP mail account")
     return parser
 
 
@@ -265,7 +265,7 @@ if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
 
-    gazbot=GazBot(server=args.server, username=args.username, password=args.password, server_smtp=args.server_smtp, username_smtp=args.username_smtp, password_smtp=args.password_smtp)
+    gazbot=GazBot(server=args.server, username=args.username, password=args.password, smtp_server=args.smtp_server, smtp_username=args.smtp_username, smtp_password=args.smtp_password)
     gazbot.get_adresses(address_filepath=args.address)
     if args.gazette:
         gazbot.get_addresses_ok()
