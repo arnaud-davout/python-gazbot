@@ -225,7 +225,7 @@ class GazBot:
             attachments.append(os.path.join(self._attachments_dir, attach))
         print('Sending gazette to {}'.format(receivers))
         send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, files=attachments,
-                  server=self.server_smtp, username=self.username_smtp, password=self.password_smtp)
+                  server=self.smtp_server, username=self.smtp_username, password=self.smtp_password)
     
     def clean_workdir(self):
         gaz_dir = os.path.join(self._publish_dir,'Gazette_'+self.today.strftime("%Y_%m_%d"))
@@ -243,8 +243,8 @@ class GazBot:
         subject = 'Rappel Gazette : J-{}'.format(remaining_days)
         body = "Ceci est un mail automatique vous rappelant qu'il vous reste {} jours pour écrire votre gazette !<br><br><b>Note:</b> vous n'auriez pas reçu ce mail si vous aviez envoyé votre gazette !".format(remaining_days) + SIGNATURE
         print('Sending {} day reminder to {}'.format(remaining_days, receivers))
-        send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, server=self.server_smtp, 
-                  username=self.username_smtp, password=self.password_smtp)
+        send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, server=self.smtp_server, 
+                  username=self.smtp_username, password=self.smtp_password)
 
 
 def get_parser():
