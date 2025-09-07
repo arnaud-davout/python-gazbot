@@ -21,4 +21,4 @@ jobs:
         run: |
           source ~/gaz_env.sh
           source .venv/bin/activate
-          python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --address ~/address.txt --reminder 0
+          python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --server_smtp $SMTP_SERVER --username_smtp $SMTP_USERNAME --password_smtp $SMTP_PASSWORD --address ~/address.txt --reminder 0
