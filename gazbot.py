@@ -26,11 +26,14 @@ def replace_in_file(filepath, to_replace, replacement):
 
 
 class GazBot:
-    def __init__(self, server, username, password):
+    def __init__(self, server, username, password, smtp_server, smtp_username, smtp_password):
         self.imap = imaplib.IMAP4_SSL(server)
         self.server = server
         self.username = username
         self.password = password
+        self.password_server = password_server
+        self.password_username = password_username
+        self.password_smtp = smtp_password
         self.imap.login(username, password)
         self._workspace = 'data'
         self._publish_dir = 'publish'
@@ -262,7 +265,7 @@ if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
 
-    gazbot=GazBot(server=args.server, username=args.username, password=args.password)
+    gazbot=GazBot(server=args.server, username=args.username, password=args.password, server_smtp=args.server_smtp, username_smtp=args.username_smtp, password_smtp=args.password_smtp)
     gazbot.get_adresses(address_filepath=args.address)
     if args.gazette:
         gazbot.get_addresses_ok()
