@@ -26,7 +26,7 @@ def replace_in_file(filepath, to_replace, replacement):
 
 
 class GazBot:
-    def __init__(self, server, username, password, smtp_server, smtp_username, smtp_password):
+    def __init__(self, server, username, password, smtp_server, smtp_username, smtp_password, smtp_sender):
         self.imap = imaplib.IMAP4_SSL(server)
         self.server = server
         self.username = username
@@ -34,6 +34,7 @@ class GazBot:
         self.smtp_server = smtp_server
         self.smtp_username = smtp_username
         self.smtp_password = smtp_password
+        self.smtp_sender = smtp_sender
         self.imap.login(username, password)
         self._workspace = 'data'
         self._publish_dir = 'publish'
@@ -224,7 +225,7 @@ class GazBot:
         for attach in os.listdir(self._attachments_dir):
             attachments.append(os.path.join(self._attachments_dir, attach))
         print('Sending gazette to {}'.format(receivers))
-        send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, files=attachments,
+        send_mail(send_from=self.smtp_sender, send_to=receivers, subject=subject, message=body, files=attachments,
                   server=self.smtp_server, username=self.smtp_username, password=self.smtp_password)
     
     def clean_workdir(self):
@@ -243,7 +244,7 @@ class GazBot:
         subject = 'Rappel Gazette : J-{}'.format(remaining_days)
         body = "Ceci est un mail automatique vous rappelant qu'il vous reste {} jours pour écrire votre gazette !<br><br><b>Note:</b> vous n'auriez pas reçu ce mail si vous aviez envoyé votre gazette !".format(remaining_days) + SIGNATURE
         print('Sending {} day reminder to {}'.format(remaining_days, receivers))
-        send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, server=self.smtp_server, 
+        send_mail(send_from=self.smtp_sender, send_to=receivers, subject=subject, message=body, server=self.smtp_server, 
                   username=self.smtp_username, password=self.smtp_password)
 
 
@@ -258,6 +259,7 @@ def get_parser():
     parser.add_argument('--smtp_server', required=True, help="Adress of the SMTP mail server")
     parser.add_argument('--smtp_username', required=True, help="Username of the SMTP mail account")
     parser.add_argument('--smtp_password', required=True, help="Password of the SMTP mail account")
+    parser.add_argument('--smtp_sender', required=True, help="Address of the sender field")
     return parser
 
 
@@ -265,7 +267,7 @@ if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
 
-    gazbot=GazBot(server=args.server, username=args.username, password=args.password, smtp_server=args.smtp_server, smtp_username=args.smtp_username, smtp_password=args.smtp_password)
+    gazbot=GazBot(server=args.server, username=args.username, password=args.password, smtp_server=args.smtp_server, smtp_username=args.smtp_username, smtp_password=args.smtp_password, smtp_sender=args.smtp_sender)
     gazbot.get_adresses(address_filepath=args.address)
     if args.gazette:
         gazbot.get_addresses_ok()
