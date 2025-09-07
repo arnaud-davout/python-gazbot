@@ -222,7 +222,7 @@ class GazBot:
             attachments.append(os.path.join(self._attachments_dir, attach))
         print('Sending gazette to {}'.format(receivers))
         send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, files=attachments,
-                  server=self.server, username=self.username, password=self.password)
+                  server=self.server_smtp, username=self.username_smtp, password=self.password_smtp)
     
     def clean_workdir(self):
         gaz_dir = os.path.join(self._publish_dir,'Gazette_'+self.today.strftime("%Y_%m_%d"))
@@ -240,8 +240,8 @@ class GazBot:
         subject = 'Rappel Gazette : J-{}'.format(remaining_days)
         body = "Ceci est un mail automatique vous rappelant qu'il vous reste {} jours pour écrire votre gazette !<br><br><b>Note:</b> vous n'auriez pas reçu ce mail si vous aviez envoyé votre gazette !".format(remaining_days) + SIGNATURE
         print('Sending {} day reminder to {}'.format(remaining_days, receivers))
-        send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, server=self.server, 
-                  username=self.username, password=self.password)
+        send_mail(send_from=sender, send_to=receivers, subject=subject, message=body, server=self.server_smtp, 
+                  username=self.username_smtp, password=self.password_smtp)
 
 
 def get_parser():
@@ -252,6 +252,9 @@ def get_parser():
     parser.add_argument('--address', '-a', required=True, help="Address file")
     parser.add_argument('--gazette', '-g', required=False, help="Send dazette")
     parser.add_argument('--reminder', '-r', required=False, help="send reminder")
+    parser.add_argument('--server_smtp', '-s', required=True, help="Adress of the SMTP mail server")
+    parser.add_argument('--username_smtp', '-u', required=True, help="Username of the SMTP mail account")
+    parser.add_argument('--password_smtp', '-p', required=True, help="Password of the SMTP mail account")
     return parser
 
 
