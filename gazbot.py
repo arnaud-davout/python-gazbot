@@ -252,9 +252,9 @@ def get_parser():
     parser.add_argument('--address', '-a', required=True, help="Address file")
     parser.add_argument('--gazette', '-g', required=False, help="Send dazette")
     parser.add_argument('--reminder', '-r', required=False, help="send reminder")
-    parser.add_argument('--server_smtp', '-s', required=True, help="Adress of the SMTP mail server")
-    parser.add_argument('--username_smtp', '-u', required=True, help="Username of the SMTP mail account")
-    parser.add_argument('--password_smtp', '-p', required=True, help="Password of the SMTP mail account")
+    parser.add_argument('--server_smtp', required=True, help="Adress of the SMTP mail server")
+    parser.add_argument('--username_smtp', required=True, help="Username of the SMTP mail account")
+    parser.add_argument('--password_smtp', required=True, help="Password of the SMTP mail account")
     return parser
 
 
