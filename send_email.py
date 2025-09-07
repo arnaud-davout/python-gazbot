@@ -30,6 +30,7 @@ def send_mail(send_from, send_to, subject, message, files=[],
     msg['To'] = COMMASPACE.join(send_to)
     msg['Date'] = formatdate(localtime=True)
     msg['Subject'] = subject
+    msg['Reply-To'] = "gazette@famille.davout.net"
 
     msg.attach(MIMEText(message, 'html'))
 
