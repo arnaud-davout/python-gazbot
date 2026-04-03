@@ -12,8 +12,8 @@ jobs:
       - name: checkout repo content
         uses: actions/checkout@v2 # checkout the repository content
         
-      #- name: setup venv
-      #  run: ./venvsetup.sh
+      - name: setup venv
+        run: ./venvsetup.sh
 
       - name: create address file
         env:
@@ -31,5 +31,5 @@ jobs:
           SMTP_SENDER: ${{ vars.SMTP_SENDER }}
         run: |
           cat address.txt
-          #source .venv/bin/activate
-          #python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --smtp_server $SMTP_SERVER --smtp_username $SMTP_USERNAME --smtp_password $SMTP_PASSWORD --smtp_sender $SMTP_SENDER --address address.txt --gazette 0
+          source .venv/bin/activate
+          python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --smtp_server $SMTP_SERVER --smtp_username $SMTP_USERNAME --smtp_password $SMTP_PASSWORD --smtp_sender $SMTP_SENDER --address address.txt --gazette 0
