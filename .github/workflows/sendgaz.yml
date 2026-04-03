@@ -18,7 +18,7 @@ jobs:
       - name: create address file
         env:
           GAZBOT_ADDRESSES: ${{ vars.GAZBOT_ADDRESSES }}
-        run: echo "$GAZBOT_ADDRESSES" | tr ',' '\n' > address.txt
+        run: echo "$GAZBOT_ADDRESSES" | tr '\n' > address.txt
 
       - name: run gazbot
         env:
