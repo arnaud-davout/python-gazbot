@@ -17,8 +17,20 @@ jobs:
       - name: setup venv
         run: ./venvsetup.sh
 
+      - name: create address file
+        env:
+          GAZBOT_ADDRESSES: ${{ vars.GAZBOT_ADDRESSES }}
+        run: echo "$GAZBOT_ADDRESSES" | tr ',' '\n' > address.txt
+
       - name: run gazbot
+        env:
+          GAZBOT_SERVER: ${{ vars.GAZBOT_SERVER }}
+          GAZBOT_USERNAME: ${{ vars.GAZBOT_USERNAME }}
+          GAZBOT_PASSWORD: ${{ secrets.GAZBOT_PASSWORD }}
+          SMTP_SERVER: ${{ vars.SMTP_SERVER }}
+          SMTP_USERNAME: ${{ vars.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_SENDER: ${{ vars.SMTP_SENDER }}
         run: |
-          source ~/gaz_env.sh
           source .venv/bin/activate
-          python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --smtp_server $SMTP_SERVER --smtp_username $SMTP_USERNAME --smtp_password $SMTP_PASSWORD --smtp_sender $SMTP_SENDER --address ~/address.txt --reminder 3
+          python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --smtp_server $SMTP_SERVER --smtp_username $SMTP_USERNAME --smtp_password $SMTP_PASSWORD --smtp_sender $SMTP_SENDER --address address.txt --reminder 3
