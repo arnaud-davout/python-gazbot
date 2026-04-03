@@ -24,13 +24,13 @@ jobs:
 
       - name: run gazbot
         env:
-          GAZBOT_SERVER: ${{ secrets.GAZBOT_SERVER }}
-          GAZBOT_USERNAME: ${{ secrets.GAZBOT_USERNAME }}
+          GAZBOT_SERVER: ${{ vars.GAZBOT_SERVER }}
+          GAZBOT_USERNAME: ${{ vars.GAZBOT_USERNAME }}
           GAZBOT_PASSWORD: ${{ secrets.GAZBOT_PASSWORD }}
-          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_SERVER: ${{ vars.SMTP_SERVER }}
+          SMTP_USERNAME: ${{ vars.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          SMTP_SENDER: ${{ secrets.SMTP_SENDER }}
+          SMTP_SENDER: ${{ vars.SMTP_SENDER }}
         run: |
           source .venv/bin/activate
           python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --smtp_server $SMTP_SERVER --smtp_username $SMTP_USERNAME --smtp_password $SMTP_PASSWORD --smtp_sender $SMTP_SENDER --address address.txt --reminder 0
