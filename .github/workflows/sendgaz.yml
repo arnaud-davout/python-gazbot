@@ -12,13 +12,13 @@ jobs:
       - name: checkout repo content
         uses: actions/checkout@v2 # checkout the repository content
         
-      - name: setup venv
-        run: ./venvsetup.sh
+      #- name: setup venv
+      #  run: ./venvsetup.sh
 
       - name: create address file
         env:
           GAZBOT_ADDRESSES: ${{ vars.GAZBOT_ADDRESSES }}
-        run: echo "$GAZBOT_ADDRESSES" | tr '\n' > address.txt
+        run: echo "$GAZBOT_ADDRESSES" | tr ',' '\n' > address.txt
 
       - name: run gazbot
         env:
