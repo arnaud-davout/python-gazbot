@@ -27,15 +27,24 @@ def replace_in_file(filepath, to_replace, replacement):
 
 
 class GazBot:
-    def __init__(self, server, username, password, smtp_server, smtp_username, smtp_password, smtp_sender):
+    def __init__(self, server, username, password, smtp_server=None, smtp_username=None, smtp_password=None, smtp_sender=None):
         self.imap = imaplib.IMAP4_SSL(server)
         self.server = server
         self.username = username
         self.password = password
-        self.smtp_server = smtp_server
-        self.smtp_username = smtp_username
-        self.smtp_password = smtp_password
-        self.smtp_sender = smtp_sender
+        if smtp_server:
+            self.smtp_server = smtp_server
+            self.smtp_port = 587
+            self.smtp_use_tls = True
+            self.smtp_username = smtp_username or ''
+            self.smtp_password = smtp_password or ''
+        else:
+            self.smtp_server = server
+            self.smtp_port = 25
+            self.smtp_use_tls = False
+            self.smtp_username = ''
+            self.smtp_password = ''
+        self.smtp_sender = smtp_sender or HOST_ADDRESS
         self.imap.login(username, password)
         self._workspace = 'data'
         self._publish_dir = 'publish'
@@ -262,7 +271,8 @@ class GazBot:
             attachments.append(os.path.join(self._attachments_dir, attach))
         print('Sending gazette to {}'.format(receivers))
         send_mail(send_from=self.smtp_sender, send_to=receivers, subject=subject, message=body, files=attachments,
-                  server=self.smtp_server, username=self.smtp_username, password=self.smtp_password)
+                  server=self.smtp_server, port=self.smtp_port, username=self.smtp_username,
+                  password=self.smtp_password, use_tls=self.smtp_use_tls)
     
     def clean_workdir(self):
         gaz_dir = os.path.join(self._publish_dir,'Gazette_'+self.today.strftime("%Y_%m_%d"))
@@ -280,8 +290,9 @@ class GazBot:
         subject = 'Rappel Gazette : J-{}'.format(remaining_days)
         body = "Ceci est un mail automatique vous rappelant qu'il vous reste {} jours pour écrire votre gazette !<br><br><b>Note:</b> vous n'auriez pas reçu ce mail si vous aviez envoyé votre gazette !".format(remaining_days) + SIGNATURE
         print('Sending {} day reminder to {}'.format(remaining_days, receivers))
-        send_mail(send_from=self.smtp_sender, send_to=receivers, subject=subject, message=body, server=self.smtp_server, 
-                  username=self.smtp_username, password=self.smtp_password)
+        send_mail(send_from=self.smtp_sender, send_to=receivers, subject=subject, message=body,
+                  server=self.smtp_server, port=self.smtp_port, username=self.smtp_username,
+                  password=self.smtp_password, use_tls=self.smtp_use_tls)
 
 
 def get_parser():
@@ -292,10 +303,10 @@ def get_parser():
     parser.add_argument('--address', '-a', required=True, help="Address file")
     parser.add_argument('--gazette', '-g', required=False, help="Send dazette")
     parser.add_argument('--reminder', '-r', required=False, help="send reminder")
-    parser.add_argument('--smtp_server', required=True, help="Adress of the SMTP mail server")
-    parser.add_argument('--smtp_username', required=True, help="Username of the SMTP mail account")
-    parser.add_argument('--smtp_password', required=True, help="Password of the SMTP mail account")
-    parser.add_argument('--smtp_sender', required=True, help="Address of the sender field")
+    parser.add_argument('--smtp_server', required=False, help="Address of the SMTP relay server (optional — if omitted, mails are sent directly through the IMAP host on port 25, no TLS, no auth)")
+    parser.add_argument('--smtp_username', required=False, help="Username of the SMTP relay account")
+    parser.add_argument('--smtp_password', required=False, help="Password of the SMTP relay account")
+    parser.add_argument('--smtp_sender', required=False, help="Address of the sender field (defaults to the built-in HOST_ADDRESS)")
     return parser
 
 

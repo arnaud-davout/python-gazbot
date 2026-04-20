@@ -48,6 +48,7 @@ def send_mail(send_from, send_to, subject, message, files=[],
     smtp = smtplib.SMTP(server, port)
     if use_tls:
         smtp.starttls()
-    smtp.login(username, password)
+    if username:
+        smtp.login(username, password)
     smtp.sendmail(send_from, send_to, msg.as_string())
     smtp.quit()

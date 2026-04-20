@@ -31,6 +31,20 @@ bob@example.com;Bob
 - Right side: contributor display name used in the gazette.
 
 ## Usage
+
+### Direct send (default, e.g. home mail server with working reverse DNS)
+Omit all `--smtp_*` arguments. The bot will send through the IMAP host on port 25, without TLS and without authentication, using `HOST_ADDRESS` (defined at the top of `gazbot.py`) as the `From` field:
+```bash
+python gazbot.py \
+  --server imap.example.com \
+  --username gazette@example.com \
+  --password <imap-password> \
+  --address addresses.txt \
+  [--gazette 1 | --reminder <days>]
+```
+
+### Through an SMTP relay (e.g. ISP without reverse DNS)
+Provide the `--smtp_*` arguments; the bot will connect on port 587 with STARTTLS and authenticate:
 ```bash
 python gazbot.py \
   --server imap.example.com \
