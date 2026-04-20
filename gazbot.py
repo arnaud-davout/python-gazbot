@@ -40,10 +40,10 @@ class GazBot:
             self.smtp_password = smtp_password or ''
         else:
             self.smtp_server = server
-            self.smtp_port = 25
-            self.smtp_use_tls = False
-            self.smtp_username = ''
-            self.smtp_password = ''
+            self.smtp_port = 587
+            self.smtp_use_tls = True
+            self.smtp_username = username
+            self.smtp_password = password
         self.smtp_sender = smtp_sender or HOST_ADDRESS
         self.imap.login(username, password)
         self._workspace = 'data'
@@ -303,9 +303,9 @@ def get_parser():
     parser.add_argument('--address', '-a', required=True, help="Address file")
     parser.add_argument('--gazette', '-g', required=False, help="Send dazette")
     parser.add_argument('--reminder', '-r', required=False, help="send reminder")
-    parser.add_argument('--smtp_server', required=False, help="Address of the SMTP relay server (optional — if omitted, mails are sent directly through the IMAP host on port 25, no TLS, no auth)")
-    parser.add_argument('--smtp_username', required=False, help="Username of the SMTP relay account")
-    parser.add_argument('--smtp_password', required=False, help="Password of the SMTP relay account")
+    parser.add_argument('--smtp_server', required=False, help="Address of the SMTP relay server (optional — if omitted, the IMAP host is reused on port 587 with STARTTLS and the IMAP credentials)")
+    parser.add_argument('--smtp_username', required=False, help="Username of the SMTP relay account (defaults to the IMAP username when --smtp_server is omitted)")
+    parser.add_argument('--smtp_password', required=False, help="Password of the SMTP relay account (defaults to the IMAP password when --smtp_server is omitted)")
     parser.add_argument('--smtp_sender', required=False, help="Address of the sender field (defaults to the built-in HOST_ADDRESS)")
     return parser
 

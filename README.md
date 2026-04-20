@@ -32,8 +32,8 @@ bob@example.com;Bob
 
 ## Usage
 
-### Direct send (default, e.g. home mail server with working reverse DNS)
-Omit all `--smtp_*` arguments. The bot will send through the IMAP host on port 25, without TLS and without authentication, using `HOST_ADDRESS` (defined at the top of `gazbot.py`) as the `From` field:
+### Direct send (default, e.g. self-hosted mail server with working reverse DNS)
+Omit all `--smtp_*` arguments. The bot will submit through the IMAP host on port 587 with STARTTLS, reusing the IMAP credentials for authentication, and using `HOST_ADDRESS` (defined at the top of `gazbot.py`) as the `From` field. Authentication is still required (otherwise the server refuses to relay to external recipients); reverse DNS only matters so that the resulting outgoing email isn't rejected by the destination.
 ```bash
 python gazbot.py \
   --server imap.example.com \
