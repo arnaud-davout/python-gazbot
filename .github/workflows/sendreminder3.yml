@@ -33,4 +33,4 @@ jobs:
           SMTP_SENDER: ${{ vars.SMTP_SENDER }}
         run: |
           source .venv/bin/activate
-          python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --smtp_server $SMTP_SERVER --smtp_username $SMTP_USERNAME --smtp_password $SMTP_PASSWORD --smtp_sender $SMTP_SENDER --address address.txt --reminder 3
+          python gazbot.py --server $GAZBOT_SERVER --username $GAZBOT_USERNAME --password $GAZBOT_PASSWORD --address address.txt --reminder 3
