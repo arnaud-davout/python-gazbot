@@ -19,3 +19,9 @@ Use :
 ```python
 usage: gazbot.py [-h] --server SERVER --username USERNAME --password PASSWORD --address ADDRESS [--gazette GAZETTE] [--reminder REMINDER]
 ```
+
+## Image handling
+Images sent by contributors are embedded directly in the generated PDF:
+- Inline images in the HTML body (referenced via `cid:`) are resolved and rendered in place.
+- Images sent as attachments are appended at the end of their author's section.
+- Non-image attachments keep their previous behavior and are re-sent alongside the gazette email.

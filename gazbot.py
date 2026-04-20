@@ -5,6 +5,7 @@ from email.message import EmailMessage
 from email.header import decode_header
 import os, shutil
 import argparse
+import uuid
 from datetime import date
 import pdfkit
 from send_email import send_mail
@@ -39,6 +40,7 @@ class GazBot:
         self._workspace = 'data'
         self._publish_dir = 'publish'
         self._attachments_dir = os.path.join(self._workspace, 'attachments')
+        self._images_dir = os.path.join(self._workspace, 'images')
         self.gazette_pdf = ''
         self.gazette_html = ''
         self.today = date.today()
@@ -50,11 +52,16 @@ class GazBot:
             os.mkdir(self._publish_dir)
         if not os.path.exists(self._attachments_dir):
             os.mkdir(self._attachments_dir)
+        if not os.path.exists(self._images_dir):
+            os.mkdir(self._images_dir)
 
     def get_part_filename(self, msg: EmailMessage):
         filename = msg.get_filename()
-        if decode_header(filename)[0][1] is not None:
-            filename = decode_header(filename)[0][0].decode(decode_header(filename)[0][1])
+        if filename is None:
+            return None
+        decoded = decode_header(filename)[0]
+        if decoded[1] is not None:
+            filename = decoded[0].decode(decoded[1])
         return filename
 
     def get_adresses(self, address_filepath):
@@ -167,20 +174,41 @@ class GazBot:
                         else:
                             message_list = [msg]
 
+                        inline_images = {}
+                        extra_images = []
                         for part in message_list:
                             content_type = part.get_content_type()
                             content_disposition = part.get_content_disposition()
 
                             if content_type == "text/html":
-                                body = part.get_payload(decode=True).decode(part.get_content_charset())
+                                charset = part.get_content_charset() or 'utf-8'
+                                body = part.get_payload(decode=True).decode(charset, errors='replace')
                                 print('text/html body:')
                                 print(body)
                                 html_body = True
                             elif content_type == "text/plain" and not html_body:
-                                body = part.get_payload(decode=True).decode(part.get_content_charset())
+                                charset = part.get_content_charset() or 'utf-8'
+                                body = part.get_payload(decode=True).decode(charset, errors='replace')
                                 print('text/plain body:')
                                 print(body)
                                 body = body.replace('\n', '<br>')
+                            elif content_type.startswith("image/"):
+                                filename = self.get_part_filename(part)
+                                if not filename:
+                                    ext = content_type.split("/")[-1].split(";")[0] or 'img'
+                                    filename = 'img_{}.{}'.format(uuid.uuid4().hex, ext)
+                                img_path = os.path.abspath(os.path.join(self._images_dir, filename))
+                                print('image found:', filename)
+                                payload = part.get_payload(decode=True)
+                                if payload:
+                                    with open(img_path, "wb") as f:
+                                        f.write(payload)
+                                    content_id = part.get("Content-ID", "")
+                                    if content_id:
+                                        content_id = content_id.strip().strip("<>")
+                                        inline_images[content_id] = img_path
+                                    else:
+                                        extra_images.append(img_path)
                             elif content_disposition == 'attachment':
                                 filename = self.get_part_filename(part)
                                 if filename:
@@ -190,6 +218,11 @@ class GazBot:
                                     with open(filepath, "wb") as f:
                                         f.write(part.get_payload(decode=True))
             if body != None:
+                for cid, path in inline_images.items():
+                    file_url = 'file://' + path
+                    body = body.replace('cid:' + cid, file_url)
+                for path in extra_images:
+                    body += '<br><img src="file://{}" style="max-width:100%;">'.format(path)
                 list_name_ok += sender_name + '<br>'
                 gazette_body += '<b><label>'+subject+'</label> </b><br>'+body+'<br><br>'
             print("="*100)
@@ -209,6 +242,9 @@ class GazBot:
                                                                 'margin-right': '0.75in',
                                                                 'margin-bottom': '0.75in',
                                                                 'margin-left': '0.75in',
+                                                                'enable-local-file-access': None,
+                                                                'load-error-handling': 'ignore',
+                                                                'load-media-error-handling': 'ignore',
                                                                 })
         self.imap.close()
         self.imap.logout()
