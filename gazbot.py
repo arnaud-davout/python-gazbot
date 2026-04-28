@@ -91,21 +91,18 @@ class GazBot:
             for response in msg:
                 if isinstance(response, tuple):
                     msg = email.message_from_bytes(response[1])
-                    subject, encoding = decode_header(msg["Subject"])[0]
 
-                    _, encoding = decode_header(msg.get("From"))[0]
                     for _idx in decode_header(msg.get("From")):
-                        _from, _ = _idx
+                        _from, part_encoding = _idx
                         if isinstance(_from, bytes):
-                            if encoding:
-                                _from = _from.decode(encoding)
+                            _from = _from.decode(part_encoding or 'utf-8', errors='replace')
                         if '@' in _from:
                             received_from = _from
 
                     datestring = decode_header(msg.get("Date"))[0][0]
                     received_date = email.utils.parsedate_to_datetime(datestring).date()
                     delta_days = self.today-received_date
-                    
+
                     for _contributor in self.adresses:
                         address = self.adresses[_contributor]
                         for _addr in address:
@@ -151,12 +148,10 @@ class GazBot:
                     if isinstance(subject, bytes):
                         subject = subject.decode(encoding)
 
-                    _, encoding = decode_header(msg.get("From"))[0]
                     for _idx in decode_header(msg.get("From")):
-                        _from, _ = _idx
+                        _from, part_encoding = _idx
                         if isinstance(_from, bytes):
-                            if encoding:
-                                _from = _from.decode(encoding)
+                            _from = _from.decode(part_encoding or 'utf-8', errors='replace')
                         if '@' in _from:
                             received_from = _from
 
