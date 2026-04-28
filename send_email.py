@@ -8,7 +8,7 @@ from email.utils import COMMASPACE, formatdate
 from os.path import basename
 
 
-def send_mail(send_from, send_to, subject, message, files=[],
+def send_mail(send_from, send_to, subject, message, files=None,
               server="localhost", port=587, username='', password='',
               use_tls=True):
     """Compose and send email with provided info and attachments.
@@ -25,6 +25,7 @@ def send_mail(send_from, send_to, subject, message, files=[],
         password (str): server auth password
         use_tls (bool): use TLS mode
     """
+    files = files or []
     msg = MIMEMultipart()
     msg['From'] = send_from
     msg['To'] = COMMASPACE.join(send_to)
@@ -35,7 +36,6 @@ def send_mail(send_from, send_to, subject, message, files=[],
     msg.attach(MIMEText(message, 'html'))
 
     for path in files:
-
         with open(path, "rb") as _file:
             part = MIMEApplication(
                 _file.read(),
@@ -45,10 +45,9 @@ def send_mail(send_from, send_to, subject, message, files=[],
         msg.attach(part)
         print("Sending file {}".format(Path(path).name))
 
-    smtp = smtplib.SMTP(server, port)
-    if use_tls:
-        smtp.starttls()
-    if username:
-        smtp.login(username, password)
-    smtp.sendmail(send_from, send_to, msg.as_string())
-    smtp.quit()
+    with smtplib.SMTP(server, port) as smtp:
+        if use_tls:
+            smtp.starttls()
+        if username:
+            smtp.login(username, password)
+        smtp.sendmail(send_from, send_to, msg.as_string())

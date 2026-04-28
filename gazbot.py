@@ -81,147 +81,149 @@ class GazBot:
 
     def get_addresses_ok(self):
         self.adresses_ok = self.adresses.copy()
+        self._eligible_messages = []
         status, messages = self.imap.select("INBOX")
         message_count = int(messages[0])
         message_count_limit = 30
 
-        for _idx in range(message_count, max(0,message_count-message_count_limit), -1):
-            res, msg = self.imap.fetch(str(_idx), "(RFC822)")
+        for seqnum in range(message_count, max(0, message_count - message_count_limit), -1):
+            res, msg_data = self.imap.fetch(str(seqnum), "(BODY.PEEK[HEADER.FIELDS (FROM DATE)])")
 
-            for response in msg:
-                if isinstance(response, tuple):
-                    msg = email.message_from_bytes(response[1])
+            for response in msg_data:
+                if not isinstance(response, tuple):
+                    continue
+                msg = email.message_from_bytes(response[1])
 
-                    for _idx in decode_header(msg.get("From")):
-                        _from, part_encoding = _idx
-                        if isinstance(_from, bytes):
-                            _from = _from.decode(part_encoding or 'utf-8', errors='replace')
-                        if '@' in _from:
-                            received_from = _from
+                received_from = ''
+                for part in decode_header(msg.get("From", "")):
+                    _from, part_encoding = part
+                    if isinstance(_from, bytes):
+                        _from = _from.decode(part_encoding or 'utf-8', errors='replace')
+                    if '@' in _from:
+                        received_from = _from
 
-                    datestring = decode_header(msg.get("Date"))[0][0]
-                    received_date = email.utils.parsedate_to_datetime(datestring).date()
-                    delta_days = self.today-received_date
+                datestring = decode_header(msg.get("Date"))[0][0]
+                received_date = email.utils.parsedate_to_datetime(datestring).date()
+                delta_days = self.today - received_date
 
-                    for _contributor in self.adresses:
-                        address = self.adresses[_contributor]
-                        for _addr in address:
-                            if _addr in received_from  and _contributor in self.adresses_ok and delta_days.days < MAX_DELTA_DAYS:
+                if delta_days.days >= MAX_DELTA_DAYS:
+                    continue
+
+                for _contributor, addresses in self.adresses.items():
+                    matched = False
+                    for _addr in addresses:
+                        if _addr in received_from:
+                            self._eligible_messages.append((seqnum, _contributor))
+                            if _contributor in self.adresses_ok:
                                 del self.adresses_ok[_contributor]
                                 print(received_from, " wrote his gaz")
+                            matched = True
+                            break
+                    if matched:
+                        break
 
     
     def save_gazette(self):
-        status, messages = self.imap.select("INBOX")
-        message_count = int(messages[0])
-        message_count_limit = 30
         gazette_title = '<h1><b>Gazette du '+self.today.strftime("%d/%m/%Y")+'</b></h1>'
         gazette_head = '<head><meta charset="utf-8">'+gazette_title+'</head><br>'
         gazette_body = "<body>"
 
-        # stats
-        gaz_month_stat = ((len(self.adresses)-len(self.adresses_ok))/len(self.adresses))*100
-        if (gaz_month_stat< 34):
-            gaz_stats = '<h2><b><label>Taux de participation : </b></label><label style="color:#FF0000;">{:.2f}%</h2></label>'.format(gaz_month_stat)
-        elif (gaz_month_stat>34 and gaz_month_stat<67):
-            gaz_stats = '<h2><b><label>Taux de participation : </b></label><label style="color:#FFA500;">{:.2f}%</h2></label>'.format(gaz_month_stat)
-        elif (gaz_month_stat>67 and gaz_month_stat<100):
-            gaz_stats = '<h2><b><label>Taux de participation : </b></label><label style="color:#FFFF00;">{:.2f}%</h2></label>'.format(gaz_month_stat)
+        total_contributors = len(self.adresses)
+        if total_contributors == 0:
+            gaz_month_stat = 0.0
         else:
-            gaz_stats = '<h2><b><label>Taux de participation : </b></label><label style="color:#008000;">{:.2f}%</h2></label>'.format(gaz_month_stat)
-        print("gaz_month_stat : {}/{}".format(len(self.adresses_ok),len(self.adresses)))
+            gaz_month_stat = ((total_contributors - len(self.adresses_ok)) / total_contributors) * 100
+        if gaz_month_stat < 34:
+            color = '#FF0000'
+        elif gaz_month_stat < 67:
+            color = '#FFA500'
+        elif gaz_month_stat < 100:
+            color = '#FFFF00'
+        else:
+            color = '#008000'
+        gaz_stats = '<h2><b><label>Taux de participation : </b></label><label style="color:{};">{:.2f}%</h2></label>'.format(color, gaz_month_stat)
+        print("gaz_month_stat : {}/{}".format(total_contributors - len(self.adresses_ok), total_contributors))
         print("gaz_month_stat (%) : {:.2f}".format(gaz_month_stat))
 
         list_name_ok = ''
 
-        # body
-        for _idx in range(message_count, max(0,message_count-message_count_limit), -1):
-            res, msg = self.imap.fetch(str(_idx), "(RFC822)")
+        for seqnum, sender_name in self._eligible_messages:
+            res, msg_data = self.imap.fetch(str(seqnum), "(RFC822)")
             body = None
             html_body = False
+            subject = ''
+            received_from = ''
+            datestring = ''
+            inline_images = {}
+            extra_images = []
 
-            for response in msg:
-                if isinstance(response, tuple):
-                    msg = email.message_from_bytes(response[1])
-                    subject, encoding = decode_header(msg["Subject"])[0]
+            for response in msg_data:
+                if not isinstance(response, tuple):
+                    continue
+                msg = email.message_from_bytes(response[1])
+                subject, encoding = decode_header(msg["Subject"])[0]
+                if isinstance(subject, bytes):
+                    subject = subject.decode(encoding or 'utf-8', errors='replace')
 
-                    if isinstance(subject, bytes):
-                        subject = subject.decode(encoding)
+                for part in decode_header(msg.get("From", "")):
+                    _from, part_encoding = part
+                    if isinstance(_from, bytes):
+                        _from = _from.decode(part_encoding or 'utf-8', errors='replace')
+                    if '@' in _from:
+                        received_from = _from
 
-                    for _idx in decode_header(msg.get("From")):
-                        _from, part_encoding = _idx
-                        if isinstance(_from, bytes):
-                            _from = _from.decode(part_encoding or 'utf-8', errors='replace')
-                        if '@' in _from:
-                            received_from = _from
+                datestring = decode_header(msg.get("Date"))[0][0]
 
-                    datestring = decode_header(msg.get("Date"))[0][0]
-                    received_date = email.utils.parsedate_to_datetime(datestring).date()
-                    delta_days = self.today-received_date
+                print("Subject:", subject)
+                print("From:", received_from)
+                print("Date:", datestring)
+                if msg.is_multipart():
+                    message_list = msg.walk()
+                else:
+                    message_list = [msg]
 
-                    known_sender = False
-                    _idx = 0
-                    for _contributor in self.adresses:
-                        address = self.adresses[_contributor]
-                        for _addr in address:
-                            if _addr in received_from:
-                                known_sender=True
-                                sender_name = _contributor
-                            _idx += 1
+                for part in message_list:
+                    content_type = part.get_content_type()
+                    content_disposition = part.get_content_disposition()
 
-                    if known_sender and delta_days.days < MAX_DELTA_DAYS:
-                        print("Subject:", subject)
-                        print("From:", received_from)
-                        print("Date:", datestring)
-                        if msg.is_multipart():
-                            message_list = msg.walk()
-                        else:
-                            message_list = [msg]
-
-                        inline_images = {}
-                        extra_images = []
-                        for part in message_list:
-                            content_type = part.get_content_type()
-                            content_disposition = part.get_content_disposition()
-
-                            if content_type == "text/html":
-                                charset = part.get_content_charset() or 'utf-8'
-                                body = part.get_payload(decode=True).decode(charset, errors='replace')
-                                print('text/html body:')
-                                print(body)
-                                html_body = True
-                            elif content_type == "text/plain" and not html_body:
-                                charset = part.get_content_charset() or 'utf-8'
-                                body = part.get_payload(decode=True).decode(charset, errors='replace')
-                                print('text/plain body:')
-                                print(body)
-                                body = body.replace('\n', '<br>')
-                            elif content_type.startswith("image/"):
-                                filename = self.get_part_filename(part)
-                                if not filename:
-                                    ext = content_type.split("/")[-1].split(";")[0] or 'img'
-                                    filename = 'img_{}.{}'.format(uuid.uuid4().hex, ext)
-                                img_path = os.path.abspath(os.path.join(self._images_dir, filename))
-                                print('image found:', filename)
-                                payload = part.get_payload(decode=True)
-                                if payload:
-                                    with open(img_path, "wb") as f:
-                                        f.write(payload)
-                                    content_id = part.get("Content-ID", "")
-                                    if content_id:
-                                        content_id = content_id.strip().strip("<>")
-                                        inline_images[content_id] = img_path
-                                    else:
-                                        extra_images.append(img_path)
-                            elif content_disposition == 'attachment':
-                                filename = self.get_part_filename(part)
-                                if filename:
-                                    filepath = os.path.join(self._attachments_dir, filename)
-                                    print('attachment found:')
-                                    print(filename)
-                                    with open(filepath, "wb") as f:
-                                        f.write(part.get_payload(decode=True))
-            if body != None:
+                    if content_type == "text/html":
+                        charset = part.get_content_charset() or 'utf-8'
+                        body = part.get_payload(decode=True).decode(charset, errors='replace')
+                        print('text/html body:')
+                        print(body)
+                        html_body = True
+                    elif content_type == "text/plain" and not html_body:
+                        charset = part.get_content_charset() or 'utf-8'
+                        body = part.get_payload(decode=True).decode(charset, errors='replace')
+                        print('text/plain body:')
+                        print(body)
+                        body = body.replace('\n', '<br>')
+                    elif content_type.startswith("image/"):
+                        filename = self.get_part_filename(part)
+                        if not filename:
+                            ext = content_type.split("/")[-1].split(";")[0] or 'img'
+                            filename = 'img_{}.{}'.format(uuid.uuid4().hex, ext)
+                        img_path = os.path.abspath(os.path.join(self._images_dir, filename))
+                        print('image found:', filename)
+                        payload = part.get_payload(decode=True)
+                        if payload:
+                            with open(img_path, "wb") as f:
+                                f.write(payload)
+                            content_id = part.get("Content-ID", "")
+                            if content_id:
+                                content_id = content_id.strip().strip("<>")
+                                inline_images[content_id] = img_path
+                            else:
+                                extra_images.append(img_path)
+                    elif content_disposition == 'attachment':
+                        filename = self.get_part_filename(part)
+                        if filename:
+                            filepath = os.path.join(self._attachments_dir, filename)
+                            print('attachment found:')
+                            print(filename)
+                            with open(filepath, "wb") as f:
+                                f.write(part.get_payload(decode=True))
+            if body is not None:
                 for cid, path in inline_images.items():
                     file_url = 'file://' + path
                     body = body.replace('cid:' + cid, file_url)
@@ -230,14 +232,14 @@ class GazBot:
                 list_name_ok += sender_name + '<br>'
                 gazette_body += '<b><label>'+subject+'</label> </b><br>'+body+'<br><br>'
             print("="*100)
-        
+
         gazette_body += '</body>'
         gaz_name_list = '<br><b><label>Contributeurs : <br></b></label><i>'+list_name_ok+'</i><br><br><br>'
-            
-        gazette_filepath = os.path.join(self._workspace, self.today.strftime("Gazette_%d_%m_%Y"))  
-        self.gazette_pdf = gazette_filepath+'.pdf'  
+
+        gazette_filepath = os.path.join(self._workspace, self.today.strftime("Gazette_%d_%m_%Y"))
+        self.gazette_pdf = gazette_filepath+'.pdf'
         self.gazette_html = gazette_filepath+'.html'
-        with open(gazette_filepath+'.html' , "w") as f:
+        with open(gazette_filepath+'.html', "w") as f:
             f.write(gazette_head+gaz_stats+gaz_name_list+gazette_body)
         replace_in_file(self.gazette_html, 'iso-8859-1', 'utf-8')
         pdfkit.from_file(self.gazette_html, self.gazette_pdf, css='style.css', options={
@@ -250,7 +252,8 @@ class GazBot:
                                                                 'load-error-handling': 'ignore',
                                                                 'load-media-error-handling': 'ignore',
                                                                 })
-        self.imap.close()
+
+    def close(self):
         self.imap.logout()
 
     def send_gazette(self):
@@ -310,12 +313,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     gazbot=GazBot(server=args.server, username=args.username, password=args.password, smtp_server=args.smtp_server, smtp_username=args.smtp_username, smtp_password=args.smtp_password, smtp_sender=args.smtp_sender)
-    gazbot.get_adresses(address_filepath=args.address)
-    if args.gazette:
-        gazbot.get_addresses_ok()
-        gazbot.save_gazette()
-        gazbot.send_gazette()
-        gazbot.clean_workdir()
-    elif args.reminder:
-        gazbot.get_addresses_ok()
-        gazbot.send_reminder(remaining_days=args.reminder)
+    try:
+        gazbot.get_adresses(address_filepath=args.address)
+        if args.gazette:
+            gazbot.get_addresses_ok()
+            gazbot.save_gazette()
+            gazbot.send_gazette()
+            gazbot.clean_workdir()
+        elif args.reminder:
+            gazbot.get_addresses_ok()
+            gazbot.send_reminder(remaining_days=args.reminder)
+    finally:
+        gazbot.close()
