@@ -1,0 +1,5 @@
+# Keep linting focused on likely-bugs (pyflakes) rather than style noise.
+line-length = 120
+
+[lint]
+select = ["F", "E9"]  # pyflakes + syntax/runtime errors
