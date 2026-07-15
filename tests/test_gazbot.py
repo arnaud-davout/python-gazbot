@@ -114,3 +114,19 @@ def test_parse_addresses_name_with_colon_uses_last_separator():
     # rsplit means a ':' inside addresses side is fine; name is the final field.
     result = parse_addresses(['a@x.com:Group A'])
     assert result == {'Group A': ['a@x.com']}
+
+
+def test_parse_addresses_from_semicolon_string():
+    # The GAZBOT_ADDRESSES secret format: entries separated by ';'.
+    result = parse_addresses('a@x.com:Alice;b@y.com,b2@y.com:Bob')
+    assert result == {'Alice': ['a@x.com'], 'Bob': ['b@y.com', 'b2@y.com']}
+
+
+def test_parse_addresses_from_newline_string():
+    result = parse_addresses('a@x.com:Alice\nb@y.com:Bob\n')
+    assert result == {'Alice': ['a@x.com'], 'Bob': ['b@y.com']}
+
+
+def test_parse_addresses_string_ignores_empty_entries():
+    result = parse_addresses(';a@x.com:Alice;;')
+    assert result == {'Alice': ['a@x.com']}

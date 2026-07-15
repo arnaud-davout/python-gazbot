@@ -30,13 +30,13 @@ bob@example.com:Bob
 - Left of `:` — comma-separated list of allowed sender addresses.
 - Right of `:` — contributor display name used in the gazette.
 
-> The GitHub Actions workflows build this file from the `GAZBOT_ADDRESSES` variable, where `;` separates the per-contributor lines (it is turned into newlines at runtime). The `:` separator above is what `gazbot.py` itself parses.
+Instead of a file, you can set the `GAZBOT_ADDRESSES` environment variable to the whole list, using `;` (or newlines) to separate contributors — e.g. `alice@example.com:Alice;bob@example.com:Bob`. When set, it takes precedence over `--address` and no file is needed. The GitHub Actions workflows pass it straight from the `GAZBOT_ADDRESSES` **repository secret** (family email addresses are PII, so a secret is preferred over a plain repository variable).
 
 Sender matching compares the parsed `From` address for equality against this list. Note that the `From` header is not cryptographically verified, so this is a convenience filter, not authentication.
 
 ## Usage
 
-Credentials can be supplied on the command line (shown below) or, preferably, via environment variables so secrets are not exposed in the process list: `GAZBOT_SERVER`, `GAZBOT_USERNAME`, `GAZBOT_PASSWORD`, `GAZBOT_ADDRESS_FILE`, and the `SMTP_*` equivalents. When set, the environment variables act as defaults for the matching flags.
+Credentials can be supplied on the command line (shown below) or, preferably, via environment variables so secrets are not exposed in the process list: `GAZBOT_SERVER`, `GAZBOT_USERNAME`, `GAZBOT_PASSWORD`, `GAZBOT_ADDRESSES` (or `GAZBOT_ADDRESS_FILE`), and the `SMTP_*` equivalents. When set, the environment variables act as defaults for the matching flags.
 
 ### Direct send (default, e.g. self-hosted mail server with working reverse DNS)
 Omit all `--smtp_*` arguments. The bot will submit through the IMAP host on port 587 with STARTTLS, reusing the IMAP credentials for authentication, and using `HOST_ADDRESS` (defined at the top of `gazbot.py`) as the `From` field. Authentication is still required (otherwise the server refuses to relay to external recipients); reverse DNS only matters so that the resulting outgoing email isn't rejected by the destination.

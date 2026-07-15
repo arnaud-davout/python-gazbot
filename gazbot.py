@@ -85,18 +85,26 @@ def parse_from_address(raw_from):
     return addr.lower()
 
 
-def parse_addresses(lines):
-    """Parse address-file lines into ``{contributor_name: [addresses]}``.
+def parse_addresses(source):
+    """Parse address definitions into ``{contributor_name: [addresses]}``.
 
-    Each non-empty line is ``addr1,addr2,...:Name``. Blank lines and lines
+    ``source`` may be a single string (entries separated by ``;`` or newlines,
+    e.g. the ``GAZBOT_ADDRESSES`` secret) or an iterable of lines (an address
+    file). Each entry is ``addr1,addr2,...:Name``. Blank entries and entries
     without a ``:`` separator are ignored.
     """
+    if isinstance(source, str):
+        entries = re.split(r'[;\n]', source)
+    else:
+        entries = []
+        for line in source:
+            entries.extend(line.split(';'))
     result = {}
-    for line in lines:
-        line = line.strip()
-        if not line or ':' not in line:
+    for entry in entries:
+        entry = entry.strip()
+        if not entry or ':' not in entry:
             continue
-        addresses, name = line.rsplit(':', 1)
+        addresses, name = entry.rsplit(':', 1)
         result[name.strip()] = [a.strip() for a in addresses.split(',') if a.strip()]
     return result
 
@@ -364,7 +372,7 @@ def get_parser():
     parser.add_argument('--server', '-s', default=os.environ.get('GAZBOT_SERVER'), help="Address of the mail server (env: GAZBOT_SERVER)")
     parser.add_argument('--username', '-u', default=os.environ.get('GAZBOT_USERNAME'), help="Username of the mail account (env: GAZBOT_USERNAME)")
     parser.add_argument('--password', '-p', default=os.environ.get('GAZBOT_PASSWORD'), help="Password of the mail account (env: GAZBOT_PASSWORD)")
-    parser.add_argument('--address', '-a', default=os.environ.get('GAZBOT_ADDRESS_FILE'), help="Address file (env: GAZBOT_ADDRESS_FILE)")
+    parser.add_argument('--address', '-a', default=os.environ.get('GAZBOT_ADDRESS_FILE'), help="Path to an address file (env: GAZBOT_ADDRESS_FILE). Optional: the GAZBOT_ADDRESSES env var, if set, takes precedence and needs no file.")
     parser.add_argument('--gazette', '-g', action='store_true', help="Send the gazette")
     parser.add_argument('--reminder', '-r', type=int, default=None, help="Send a reminder for the given number of remaining days")
     parser.add_argument('--smtp_server', default=os.environ.get('SMTP_SERVER'), help="Address of the SMTP relay server (env: SMTP_SERVER; if omitted, the IMAP host is reused on port 587 with STARTTLS and the IMAP credentials)")
@@ -378,13 +386,20 @@ if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
 
-    for required in ('server', 'username', 'password', 'address'):
+    for required in ('server', 'username', 'password'):
         if not getattr(args, required):
             parser.error("--{0} is required (or set the corresponding environment variable)".format(required))
 
+    addresses_env = os.environ.get('GAZBOT_ADDRESSES')
+    if not addresses_env and not args.address:
+        parser.error("provide contributor addresses via the GAZBOT_ADDRESSES environment variable or --address")
+
     gazbot=GazBot(server=args.server, username=args.username, password=args.password, smtp_server=args.smtp_server, smtp_username=args.smtp_username, smtp_password=args.smtp_password, smtp_sender=args.smtp_sender)
     try:
-        gazbot.get_adresses(address_filepath=args.address)
+        if addresses_env:
+            gazbot.adresses = parse_addresses(addresses_env)
+        else:
+            gazbot.get_adresses(address_filepath=args.address)
         if args.gazette:
             gazbot.get_addresses_ok()
             gazbot.save_gazette()
