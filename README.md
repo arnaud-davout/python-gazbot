@@ -21,15 +21,6 @@ Set up the virtual environment and install dependencies:
 source .venv/bin/activate
 ```
 
-## Address file
-The bot takes a plain-text address file where each line maps a contributor name to one or more email addresses, using `;` as a separator:
-```
-alice@example.com,alice.work@example.com;Alice
-bob@example.com;Bob
-```
-- Left side: comma-separated list of allowed sender addresses.
-- Right side: contributor display name used in the gazette.
-
 ## Usage
 
 ### Direct send (default, e.g. self-hosted mail server with working reverse DNS)
