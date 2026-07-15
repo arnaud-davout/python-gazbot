@@ -5,6 +5,7 @@ from email.message import EmailMessage
 from email.header import decode_header
 import os, shutil
 import argparse
+import re
 import uuid
 from datetime import date
 import pdfkit
@@ -17,6 +18,46 @@ __VERSION__ = "1.0"
 GITHUB = "https://github.com/arnaud-davout/python-gazbot"
 HOWTO = "https://github.com/arnaud-davout/python-gazbot/blob/main/HOWTO.md"
 SIGNATURE = '<br><br><br>---<br>PyGazetteBot v' + __VERSION__ + ' | <a href=' + HOWTO + '>Gazette HOW-TO</a> | <a href=' + GITHUB + '>GitHub</a>'
+
+# Tags whose entire content is stripped (active content / external loaders).
+_UNSAFE_BLOCK_TAGS = ('script', 'iframe', 'object', 'embed', 'applet', 'style')
+# Standalone tags that only load resources or trigger navigation.
+_UNSAFE_VOID_TAGS = ('link', 'meta', 'base')
+
+
+def sanitize_html(html):
+    """Strip active/exfiltration vectors from untrusted email HTML.
+
+    Email bodies come from arbitrary senders and are later rendered to PDF by
+    wkhtmltopdf with local-file access enabled. Without this, a crafted email
+    can execute JavaScript and exfiltrate local files (see pdfkit CVE). We
+    remove scripts, external loaders, inline event handlers and dangerous URI
+    schemes while preserving ordinary formatting. The app inserts its own
+    trusted ``file://`` images *after* sanitization, so stripping ``file:``
+    here only affects attacker-supplied content.
+    """
+    if not html:
+        return html
+    # Drop unsafe blocks together with their content.
+    for tag in _UNSAFE_BLOCK_TAGS:
+        html = re.sub(r'<{0}\b[^>]*>.*?</{0}>'.format(tag), '',
+                      html, flags=re.IGNORECASE | re.DOTALL)
+        # Also drop a dangling/self-closed opening tag with no matching close.
+        html = re.sub(r'<{0}\b[^>]*/?>'.format(tag), '',
+                      html, flags=re.IGNORECASE)
+    # Drop resource-loading / navigation void tags.
+    for tag in _UNSAFE_VOID_TAGS:
+        html = re.sub(r'<{0}\b[^>]*/?>'.format(tag), '',
+                      html, flags=re.IGNORECASE)
+    # Strip inline event handlers, e.g. onclick="..." / onload='...'.
+    html = re.sub(r'\son\w+\s*=\s*"[^"]*"', '', html, flags=re.IGNORECASE)
+    html = re.sub(r"\son\w+\s*=\s*'[^']*'", '', html, flags=re.IGNORECASE)
+    html = re.sub(r'\son\w+\s*=\s*[^\s>]+', '', html, flags=re.IGNORECASE)
+    # Neutralise dangerous URI schemes in attacker-supplied markup.
+    html = re.sub(r'(javascript|vbscript|file|data)\s*:', 'blocked:',
+                  html, flags=re.IGNORECASE)
+    return html
+
 
 def replace_in_file(filepath, to_replace, replacement):
     with open(filepath, 'r') as file :
@@ -224,13 +265,17 @@ class GazBot:
                             with open(filepath, "wb") as f:
                                 f.write(part.get_payload(decode=True))
             if body is not None:
+                # Sanitize untrusted sender content before embedding it. Trusted
+                # file:// image references are added by the app afterwards.
+                body = sanitize_html(body)
+                safe_subject = sanitize_html(subject)
                 for cid, path in inline_images.items():
                     file_url = 'file://' + path
                     body = body.replace('cid:' + cid, file_url)
                 for path in extra_images:
                     body += '<br><img src="file://{}" style="max-width:100%;">'.format(path)
                 list_name_ok += sender_name + '<br>'
-                gazette_body += '<b><label>'+subject+'</label> </b><br>'+body+'<br><br>'
+                gazette_body += '<b><label>'+safe_subject+'</label> </b><br>'+body+'<br><br>'
             print("="*100)
 
         gazette_body += '</body>'
@@ -249,6 +294,7 @@ class GazBot:
                                                                 'margin-bottom': '0.75in',
                                                                 'margin-left': '0.75in',
                                                                 'enable-local-file-access': None,
+                                                                'disable-javascript': None,
                                                                 'load-error-handling': 'ignore',
                                                                 'load-media-error-handling': 'ignore',
                                                                 })
