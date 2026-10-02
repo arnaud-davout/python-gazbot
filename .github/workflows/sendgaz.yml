@@ -26,5 +26,6 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_SENDER: ${{ vars.SMTP_SENDER }}
         run: |
+          export XDG_RUNTIME_DIR="/tmp/runtime-$(whoami)"
           source .venv/bin/activate
           python gazbot.py --gazette
