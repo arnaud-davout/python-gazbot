@@ -24,8 +24,6 @@ jobs:
           GAZBOT_PASSWORD: ${{ secrets.GAZBOT_PASSWORD }}
           GAZBOT_ADDRESSES: ${{ secrets.GAZBOT_ADDRESSES }}
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-          SMTP_USERNAME: ${{ vars.SMTP_USERNAME }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_SENDER: ${{ vars.SMTP_SENDER }}
         run: |
           source .venv/bin/activate

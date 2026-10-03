@@ -10,7 +10,7 @@ from os.path import basename
 
 
 def send_mail(send_from, send_to, subject, message, files=None,
-              server=os.getenv('SMTP_SERVER', 'localhost'), port=int(os.getenv('SMTP_PORT', 587)), username=os.getenv('SMTP_USERNAME', ''), password=os.getenv('SMTP_PASSWORD', ''),
+              server=os.getenv('SMTP_SERVER', 'localhost'), port=int(os.getenv('SMTP_PORT', 587)), username=os.getenv('GAZBOT_USERNAME', ''), password=os.getenv('GAZBOT_PASSWORD', ''),
               use_tls=True):
     """Compose and send email with provided info and attachments.
 

@@ -376,8 +376,8 @@ def get_parser():
     parser.add_argument('--gazette', '-g', action='store_true', help="Send the gazette")
     parser.add_argument('--reminder', '-r', type=int, default=None, help="Send a reminder for the given number of remaining days")
     parser.add_argument('--smtp_server', default=os.environ.get('SMTP_SERVER'), help="Address of the SMTP relay server (env: SMTP_SERVER; if omitted, the IMAP host is reused on port 587 with STARTTLS and the IMAP credentials)")
-    parser.add_argument('--smtp_username', default=os.environ.get('SMTP_USERNAME'), help="Username of the SMTP relay account (env: SMTP_USERNAME; defaults to the IMAP username when --smtp_server is omitted)")
-    parser.add_argument('--smtp_password', default=os.environ.get('SMTP_PASSWORD'), help="Password of the SMTP relay account (env: SMTP_PASSWORD; defaults to the IMAP password when --smtp_server is omitted)")
+    parser.add_argument('--smtp_username', default=os.environ.get('GAZBOT_USERNAME'), help="Username of the SMTP relay account (env: GAZBOT_USERNAME; defaults to the IMAP username when --smtp_server is omitted)")
+    parser.add_argument('--smtp_password', default=os.environ.get('GAZBOT_PASSWORD'), help="Password of the SMTP relay account (env: GAZBOT_PASSWORD; defaults to the IMAP password when --smtp_server is omitted)")
     parser.add_argument('--smtp_sender', default=os.environ.get('SMTP_SENDER'), help="Address of the sender field (env: SMTP_SENDER; defaults to the built-in HOST_ADDRESS)")
     return parser
 

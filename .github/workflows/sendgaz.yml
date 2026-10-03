@@ -28,8 +28,6 @@ jobs:
           GAZBOT_ADDRESSES: ${{ vars.GAZBOT_ADDRESSES }}
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SMTP_PORT: ${{ vars.SMTP_PORT }}
-          SMTP_USERNAME: ${{ vars.SMTP_USERNAME }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_SENDER: ${{ vars.SMTP_SENDER }}
         run: |
           export XDG_RUNTIME_DIR="/tmp/runtime-$(whoami)"
