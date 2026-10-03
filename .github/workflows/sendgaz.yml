@@ -7,21 +7,27 @@ on:
 
 jobs:
   send_gazette:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest  # <-- Runner GitHub au lieu de self-hosted
     steps:
       - name: checkout repo content
-        uses: actions/checkout@v5 # checkout the repository content
-        
+        uses: actions/checkout@v5
+
       - name: setup venv
         run: ./venvsetup.sh
+
+      - name: install wkhtmltopdf
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wkhtmltopdf xfonts-75dpi xfonts-base
 
       - name: run gazbot
         env:
           GAZBOT_SERVER: ${{ vars.GAZBOT_SERVER }}
           GAZBOT_USERNAME: ${{ vars.GAZBOT_USERNAME }}
           GAZBOT_PASSWORD: ${{ secrets.GAZBOT_PASSWORD }}
-          GAZBOT_ADDRESSES: ${{ secrets.GAZBOT_ADDRESSES }}
+          GAZBOT_ADDRESSES: ${{ vars.GAZBOT_ADDRESSES }}
           SMTP_SERVER: ${{ vars.SMTP_SERVER }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
           SMTP_USERNAME: ${{ vars.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_SENDER: ${{ vars.SMTP_SENDER }}

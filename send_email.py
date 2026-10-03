@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import smtplib
 from pathlib import Path
 from email.mime.multipart import MIMEMultipart
@@ -9,7 +10,7 @@ from os.path import basename
 
 
 def send_mail(send_from, send_to, subject, message, files=None,
-              server="localhost", port=587, username='', password='',
+              server=os.getenv('SMTP_SERVER', 'localhost'), port=int(os.getenv('SMTP_PORT', 587)), username=os.getenv('SMTP_USERNAME', ''), password=os.getenv('SMTP_PASSWORD', ''),
               use_tls=True):
     """Compose and send email with provided info and attachments.
 
