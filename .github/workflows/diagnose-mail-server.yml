@@ -18,27 +18,27 @@ jobs:
           echo ""
 
           echo "1. Resolution DNS:"
-          nslookup ${{ secrets.GAZBOT_SERVER }} || true
+          nslookup -timeout=2 ${{ secrets.GAZBOT_SERVER }} || echo "DNS: FAILED"
           echo ""
 
-          echo "2. Ping:"
-          ping -c 4 ${{ secrets.GAZBOT_SERVER }} || true
+          echo "2. Ping (timeout 2s):"
+          ping -c 1 -W 2 ${{ secrets.GAZBOT_SERVER }} || echo "Ping: FAILED"
           echo ""
 
-          echo "3. Test port IMAP (993):"
-          nc -zv ${{ secrets.GAZBOT_SERVER }} 993 || echo "Port 993: FAILED"
+          echo "3. Test port IMAP (993) [timeout 5s]:"
+          nc -zv -w 5 ${{ secrets.GAZBOT_SERVER }} 993 || echo "Port 993: FAILED"
           echo ""
 
-          echo "4. Test port SMTP (587):"
-          nc -zv ${{ secrets.GAZBOT_SERVER }} 587 || echo "Port 587: FAILED"
+          echo "4. Test port SMTP (587) [timeout 5s]:"
+          nc -zv -w 5 ${{ secrets.GAZBOT_SERVER }} 587 || echo "Port 587: FAILED"
           echo ""
 
-          echo "5. Test connexion IMAP SSL:"
-          openssl s_client -connect ${{ secrets.GAZBOT_SERVER }}:993 -quiet -servername ${{ secrets.GAZBOT_SERVER }} 2>&1 | head -5 || echo "IMAP SSL: FAILED"
+          echo "5. Test connexion IMAP SSL [timeout 5s]:"
+          timeout 5 openssl s_client -connect ${{ secrets.GAZBOT_SERVER }}:993 -quiet -servername ${{ secrets.GAZBOT_SERVER }} 2>&1 | head -5 || echo "IMAP SSL: FAILED"
           echo ""
 
-          echo "6. Test connexion SMTP:"
-          openssl s_client -connect ${{ secrets.GAZBOT_SERVER }}:587 -starttls smtp -quiet -servername ${{ secrets.GAZBOT_SERVER }} 2>&1 | head -5 || echo "SMTP: FAILED"
+          echo "6. Test connexion SMTP [timeout 5s]:"
+          timeout 5 openssl s_client -connect ${{ secrets.GAZBOT_SERVER }}:587 -starttls smtp -quiet -servername ${{ secrets.GAZBOT_SERVER }} 2>&1 | head -5 || echo "SMTP: FAILED"
           echo ""
 
           echo "===== END DIAGNOSTIC ====="
