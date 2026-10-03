@@ -12,17 +12,13 @@ jobs:
       - name: checkout repo content
         uses: actions/checkout@v5
 
-      - name: install python dependencies
+      - name: install dependencies
         run: |
-          sudo apt-get install -y python3-venv python3-pip
+          sudo apt-get update
+          sudo apt-get install -y python3-venv python3-pip wkhtmltopdf xfonts-75dpi xfonts-base
 
       - name: setup venv
         run: ./venvsetup.sh
-
-      - name: install wkhtmltopdf
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wkhtmltopdf xfonts-75dpi xfonts-base
 
       - name: run gazbot
         env:
