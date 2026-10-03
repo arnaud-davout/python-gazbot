@@ -1,0 +1,44 @@
+name: Diagnose Mail Server Connectivity
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install diagnostic tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y net-tools dnsutils openssl telnet
+
+      - name: Diagnose server connectivity
+        run: |
+          echo "===== DIAGNOSTIC CONNEXION SERVEUR MAIL ====="
+          echo ""
+
+          echo "1. Resolution DNS:"
+          nslookup ${{ secrets.GAZBOT_SERVER }} || true
+          echo ""
+
+          echo "2. Ping:"
+          ping -c 4 ${{ secrets.GAZBOT_SERVER }} || true
+          echo ""
+
+          echo "3. Test port IMAP (993):"
+          nc -zv ${{ secrets.GAZBOT_SERVER }} 993 || echo "Port 993: FAILED"
+          echo ""
+
+          echo "4. Test port SMTP (587):"
+          nc -zv ${{ secrets.GAZBOT_SERVER }} 587 || echo "Port 587: FAILED"
+          echo ""
+
+          echo "5. Test connexion IMAP SSL:"
+          openssl s_client -connect ${{ secrets.GAZBOT_SERVER }}:993 -quiet -servername ${{ secrets.GAZBOT_SERVER }} 2>&1 | head -5 || echo "IMAP SSL: FAILED"
+          echo ""
+
+          echo "6. Test connexion SMTP:"
+          openssl s_client -connect ${{ secrets.GAZBOT_SERVER }}:587 -starttls smtp -quiet -servername ${{ secrets.GAZBOT_SERVER }} 2>&1 | head -5 || echo "SMTP: FAILED"
+          echo ""
+
+          echo "===== END DIAGNOSTIC ====="

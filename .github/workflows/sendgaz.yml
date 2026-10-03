@@ -15,34 +15,10 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-venv python3-pip wkhtmltopdf xfonts-75dpi xfonts-base net-tools dnsutils telnet
+          sudo apt-get install -y python3-venv python3-pip wkhtmltopdf xfonts-75dpi xfonts-base
 
       - name: setup venv
         run: ./venvsetup.sh
-
-      - name: diagnose server connectivity
-        run: |
-          echo "===== DIAGNOSTIC CONNEXION SERVEUR MAIL ====="
-          echo ""
-          echo "1. Resolution DNS:"
-          nslookup ${{ vars.GAZBOT_SERVER }} || true
-          echo ""
-          echo "2. Ping:"
-          ping -c 4 ${{ vars.GAZBOT_SERVER }} || true
-          echo ""
-          echo "3. Test port IMAP (993):"
-          nc -zv ${{ vars.GAZBOT_SERVER }} 993 || echo "Port 993: FAILED"
-          echo ""
-          echo "4. Test port SMTP (587):"
-          nc -zv ${{ vars.GAZBOT_SERVER }} 587 || echo "Port 587: FAILED"
-          echo ""
-          echo "5. Test connexion IMAP SSL:"
-          openssl s_client -connect ${{ vars.GAZBOT_SERVER }}:993 -quiet -servername ${{ vars.GAZBOT_SERVER }} 2>&1 | head -5 || echo "IMAP SSL: FAILED"
-          echo ""
-          echo "6. Test connexion SMTP:"
-          openssl s_client -connect ${{ vars.GAZBOT_SERVER }}:587 -starttls smtp -quiet -servername ${{ vars.GAZBOT_SERVER }} 2>&1 | head -5 || echo "SMTP: FAILED"
-          echo ""
-          echo "===== END DIAGNOSTIC ====="
 
       - name: run gazbot
         env:
