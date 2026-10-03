@@ -7,7 +7,7 @@ on:
 
 jobs:
   send_gazette:
-    runs-on: ubuntu-latest  # <-- Runner GitHub au lieu de self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: checkout repo content
         uses: actions/checkout@v5

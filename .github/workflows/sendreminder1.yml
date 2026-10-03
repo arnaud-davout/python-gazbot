@@ -9,10 +9,15 @@ on:
 
 jobs:
   send_reminder_1:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: checkout repo content
-        uses: actions/checkout@v5 # checkout the repository content
+        uses: actions/checkout@v5
+
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-venv python3-pip wkhtmltopdf xfonts-75dpi xfonts-base
 
       - name: setup venv
         run: ./venvsetup.sh
