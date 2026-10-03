@@ -2,43 +2,148 @@ name: Diagnose Mail Server Connectivity
 
 on:
   workflow_dispatch:
+    inputs:
+      rcpt:
+        description: "Test recipient (full address) for RCPT TO. No mail is sent."
+        required: false
+        default: ""
 
 jobs:
   diagnose:
     runs-on: ubuntu-latest
+    env:
+      SERVER: ${{ secrets.GAZBOT_SERVER }}
+      GAZBOT_USERNAME: ${{ vars.GAZBOT_USERNAME }}
+      GAZBOT_PASSWORD: ${{ secrets.GAZBOT_PASSWORD }}
+      SMTP_USERNAME: ${{ vars.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      DIAG_RCPT: ${{ github.event.inputs.rcpt }}
     steps:
       - name: Install diagnostic tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y net-tools dnsutils openssl telnet
+          sudo apt-get install -y netcat-openbsd dnsutils openssl curl
 
-      - name: Diagnose server connectivity
+      - name: 1. Runner network identity
         run: |
-          echo "===== DIAGNOSTIC CONNEXION SERVEUR MAIL ====="
+          echo "Runner public IP:"
+          RUNNER_IP=$(curl -s --max-time 10 https://api.ipify.org || true)
+          echo "$RUNNER_IP"
           echo ""
+          echo "Reverse DNS (PTR) for this IP:"
+          dig +short -x "$RUNNER_IP" || true
+          echo "(empty = no PTR record, Postfix will log <unknown[...]>)"
 
-          echo "1. Resolution DNS:"
-          nslookup -timeout=2 ${{ secrets.GAZBOT_SERVER }} || echo "DNS: FAILED"
+      - name: 2. Server DNS
+        run: |
+          echo "Resolving $SERVER:"
+          dig +short "$SERVER" A || true
+          dig +short "$SERVER" CNAME || true
           echo ""
+          nslookup -timeout=2 "$SERVER" || true
 
-          echo "2. Ping (timeout 2s):"
-          ping -c 1 -W 2 ${{ secrets.GAZBOT_SERVER }} || echo "Ping: FAILED"
+      - name: 3. TCP ports
+        run: |
+          FAILED=0
+          for PORT in 993 587; do
+            echo "Testing port $PORT [timeout 5s]:"
+            nc -zv -w 5 "$SERVER" "$PORT" || FAILED=1
+            echo ""
+          done
+          [ $FAILED -eq 0 ] || { echo "=== PORT(S) UNREACHABLE ==="; exit 1; }
+
+      - name: 4. TLS certificates
+        if: always()
+        run: |
+          echo "--- IMAP 993 (direct TLS) ---"
+          echo | openssl s_client -connect "$SERVER:993" -servername "$SERVER" 2>/dev/null \
+            | openssl x509 -noout -subject -issuer -dates || true
           echo ""
+          echo "--- SMTP 587 (STARTTLS) ---"
+          echo | openssl s_client -starttls smtp -connect "$SERVER:587" -servername "$SERVER" 2>/dev/null \
+            | openssl x509 -noout -subject -issuer -dates || true
 
-          echo "3. Test port IMAP (993) [timeout 5s]:"
-          nc -zv -w 5 ${{ secrets.GAZBOT_SERVER }} 993 || echo "Port 993: FAILED"
-          echo ""
+      - name: 5. SMTP auth with each credential pair (no mail sent)
+        if: always()
+        run: |
+          python3 - <<'EOF'
+          import os, smtplib, sys, ssl
 
-          echo "4. Test port SMTP (587) [timeout 5s]:"
-          nc -zv -w 5 ${{ secrets.GAZBOT_SERVER }} 587 || echo "Port 587: FAILED"
-          echo ""
+          server = os.environ["SERVER"]
+          e = os.environ.get
+          su, sp = e("SMTP_USERNAME", ""), e("SMTP_PASSWORD", "")
+          gu, gp = e("GAZBOT_USERNAME", ""), e("GAZBOT_PASSWORD", "")
+          rcpt = e("DIAG_RCPT", "")
 
-          echo "5. Test connexion IMAP SSL [timeout 5s]:"
-          timeout 5 openssl s_client -connect ${{ secrets.GAZBOT_SERVER }}:993 -quiet -servername ${{ secrets.GAZBOT_SERVER }} 2>&1 | head -5 || echo "IMAP SSL: FAILED"
-          echo ""
+          print(f"SMTP_USERNAME={su!r} (pwd len {len(sp)}) | GAZBOT_USERNAME={gu!r} (pwd len {len(gp)})")
+          print(f"Same password in both? {sp == gp} | same username in both? {su == gu}")
+          if rcpt and "@" not in rcpt:
+              print("WARNING: test recipient is not a full address")
+          print()
 
-          echo "6. Test connexion SMTP [timeout 5s]:"
-          timeout 5 openssl s_client -connect ${{ secrets.GAZBOT_SERVER }}:587 -starttls smtp -quiet -servername ${{ secrets.GAZBOT_SERVER }} 2>&1 | head -5 || echo "SMTP: FAILED"
-          echo ""
+          # Diagnostic only: no certificate verification (hostname may differ from the cert).
+          ctx = ssl.create_default_context()
+          ctx.check_hostname = False
+          ctx.verify_mode = ssl.CERT_NONE
 
-          echo "===== END DIAGNOSTIC ====="
+          pairs = [
+              ("SMTP_USERNAME + SMTP_PASSWORD", su, sp),
+              ("GAZBOT_USERNAME + GAZBOT_PASSWORD", gu, gp),
+              ("SMTP_USERNAME + GAZBOT_PASSWORD", su, gp),
+              ("GAZBOT_USERNAME + SMTP_PASSWORD", gu, sp),
+          ]
+          seen, winner = set(), None
+          for label, u, p in pairs:
+              if not u or not p or (u, p) in seen:
+                  continue
+              seen.add((u, p))
+              s = smtplib.SMTP(server, 587, timeout=30)
+              s.ehlo()
+              s.starttls(context=ctx)
+              s.ehlo()
+              try:
+                  s.login(u, p)
+                  print(f"[OK]   LOGIN with {label} (user {u!r})")
+                  winner = (label, u, s)
+                  break
+              except Exception as ex:
+                  print(f"[FAIL] LOGIN with {label} (user {u!r}) -> {ex}")
+                  try:
+                      s.quit()
+                  except Exception:
+                      pass
+
+          if not winner:
+              print("\n>>> No credential pair authenticates on SMTP.")
+              sys.exit(1)
+
+          label, u, s = winner
+          print(f"\n>>> Authenticated with: {label}\n")
+          try:
+              print("[OK]   MAIL FROM ->", s.mail(u))
+              target = rcpt or u
+              code, msg = s.rcpt(target)
+              print(f"[OK]   RCPT TO {target!r} -> {code} {msg!r}")
+              s.rset()
+              s.quit()
+          except Exception as ex:
+              print(f"[FAIL] {type(ex).__name__}: {ex}")
+              sys.exit(1)
+          EOF
+
+      - name: 6. IMAP session (validates GAZBOT credentials)
+        if: always()
+        run: |
+          python3 - <<'EOF'
+          import os, imaplib, sys
+          server = os.environ["SERVER"]
+          try:
+              m = imaplib.IMAP4_SSL(server, 993, timeout=30)
+              print("[OK]   IMAP SSL connect")
+              m.login(os.environ["GAZBOT_USERNAME"], os.environ["GAZBOT_PASSWORD"])
+              print("[OK]   IMAP LOGIN")
+              m.logout()
+          except Exception as e:
+              print(f"[FAIL] IMAP -> {type(e).__name__}: {e}")
+              sys.exit(1)
+          EOF
