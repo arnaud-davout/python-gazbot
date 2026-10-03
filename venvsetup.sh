@@ -23,8 +23,7 @@ install_python() {
 install_packages() {
     echo "Installing dependency packages"
     source $VENV_LOCATION/bin/activate
-    pip install setuptools
-    python setup.py install
+    pip install -r requirements.txt
     deactivate
 }
 
