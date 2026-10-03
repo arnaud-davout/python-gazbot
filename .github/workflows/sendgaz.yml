@@ -12,6 +12,10 @@ jobs:
       - name: checkout repo content
         uses: actions/checkout@v5
 
+      - name: install python dependencies
+        run: |
+          sudo apt-get install -y python3-venv python3-pip
+
       - name: setup venv
         run: ./venvsetup.sh
 
