@@ -9,7 +9,7 @@ on:
 
 jobs:
   send_reminder_1:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: checkout repo content
         uses: actions/checkout@v5 # checkout the repository content
@@ -22,8 +22,9 @@ jobs:
           GAZBOT_SERVER: ${{ secrets.GAZBOT_SERVER }}
           GAZBOT_USERNAME: ${{ vars.GAZBOT_USERNAME }}
           GAZBOT_PASSWORD: ${{ secrets.GAZBOT_PASSWORD }}
-          GAZBOT_ADDRESSES: ${{ secrets.GAZBOT_ADDRESSES }}
+          GAZBOT_ADDRESSES: ${{ vars.GAZBOT_ADDRESSES }}
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
           SMTP_SENDER: ${{ vars.SMTP_SENDER }}
         run: |
           source .venv/bin/activate
